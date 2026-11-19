@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use this dataset or software, please cite it as below."
+title: "Generative AI Tech Roadmap"
+type: dataset
+authors:
+  - alias: seamys
+repository-code: "https://github.com/seamys/ai-tech-tree"
+url: "https://seamys.github.io/ai-tech-tree/"
+abstract: >-
+  An interactive, bilingual map of generative AI from minerals and energy to
+  applications, organised in 10 layers on a live timeline, with breakthroughs
+  and constraints as nodes in a dependency graph.
+keywords:
+  - generative AI
+  - technology roadmap
+  - AI infrastructure
+  - dataset
+license: CC-BY-4.0
+version: 1.0.0
+date-released: 2026-11-19

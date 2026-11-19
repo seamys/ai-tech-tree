@@ -67,4 +67,4 @@ Nodes from the last 90 days, and future nodes, are visible at every level.
 
 ## Build
 
-`esbuild` bundles `src/main.tsx` into ES2022 modules with content-hashed file names and source maps. There is no framework-specific build step: the same command serves the dev build (`--serve`) and the production build.
+`esbuild` bundles `src/main.tsx` into ES2022 modules with content-hashed file names and source maps. The build also copies `public/` (the social preview image) and writes `badges/*.json`, the shields.io endpoints behind the README's node-count and latest-event badges. There is no framework-specific build step: the same command serves the dev build (`--serve`) and the production build.

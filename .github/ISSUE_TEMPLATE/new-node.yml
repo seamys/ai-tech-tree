@@ -1,0 +1,66 @@
+name: New node
+description: Propose a breakthrough or constraint to add to the tree
+title: "[node] "
+labels: ["data", "new node"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks! A good node has a primary source and a clear reason it matters. See [CONTRIBUTING.md](https://github.com/seamys/ai-tech-tree/blob/main/CONTRIBUTING.md#what-counts-as-a-node).
+  - type: input
+    id: title
+    attributes:
+      label: Title
+      placeholder: "e.g. Vera Rubin ships in volume"
+    validations:
+      required: true
+  - type: input
+    id: date
+    attributes:
+      label: Date
+      description: YYYY, YYYY-MM or YYYY-MM-DD, as precise as the source allows.
+      placeholder: "2026-07-21"
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind
+      options:
+        - Breakthrough (paper / release)
+        - Event
+        - Constraint (policy, supply, power, legal)
+        - Upcoming (scheduled future event)
+    validations:
+      required: true
+  - type: dropdown
+    id: layer
+    attributes:
+      label: Layer
+      options:
+        - L9 Applications
+        - L8 Model services & tools
+        - L7 Foundation models
+        - L6 Data
+        - L5 System software
+        - L4 Data centres & cloud
+        - L3 Chips & systems
+        - L2 Semiconductor manufacturing
+        - L1 Energy & power
+        - L0 Minerals & materials
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Primary source URL
+      description: Paper, official announcement or regulator notice. Please avoid aggregators.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it matters
+      description: One or two sentences. Which existing nodes does it build on or affect?
+    validations:
+      required: true

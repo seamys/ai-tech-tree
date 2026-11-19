@@ -3,6 +3,26 @@
   "version": "1.0.0",
   "private": true,
   "description": "Interactive generative AI tech roadmap: from minerals and energy to applications, on a live timeline.",
+  "keywords": [
+    "generative-ai",
+    "ai-roadmap",
+    "technology-tree",
+    "timeline",
+    "data-visualization",
+    "ai-infrastructure",
+    "react",
+    "typescript"
+  ],
+  "homepage": "https://seamys.github.io/ai-tech-tree/",
+  "bugs": {
+    "url": "https://github.com/seamys/ai-tech-tree/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/seamys/ai-tech-tree.git"
+  },
+  "license": "MIT",
+  "author": "seamys",
   "type": "module",
   "engines": {
     "node": ">=22"

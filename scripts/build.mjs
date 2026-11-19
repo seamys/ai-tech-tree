@@ -4,6 +4,8 @@
 //   dist/index.html            HTML shell with hashed asset URLs and a data version stamp
 //   dist/assets/main-[hash].*  bundled, minified JS and CSS (+ source maps)
 //   dist/data/*.json           content, copied as-is and fetched at runtime
+//   dist/badges/*.json         shields.io endpoint badges (node count, last update)
+//   dist/*                     static files from public/ (social image...)
 import * as esbuild from "esbuild";
 import { createHash } from "node:crypto";
 import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
@@ -36,7 +38,20 @@ async function writeShell(metafile) {
     .replace("%JS%", asset(".js"));
   await writeFile(join(outdir, "index.html"), html);
   await cp(join(root, "data"), join(outdir, "data"), { recursive: true });
+  await cp(join(root, "public"), outdir, { recursive: true });
+  await writeBadges();
   await writeFile(join(outdir, ".nojekyll"), "");
+}
+
+/** shields.io "endpoint" badges, regenerated on every deploy so the README stays current. */
+async function writeBadges() {
+  const nodes = JSON.parse(await readFile(join(root, "data/nodes.json"), "utf8"));
+  const today = new Date().toISOString().slice(0, 10);
+  const past = nodes.map((n) => n.date).filter((d) => d <= today).sort();
+  const badge = (label, message, color) => JSON.stringify({ schemaVersion: 1, label, message, color });
+  await mkdir(join(outdir, "badges"), { recursive: true });
+  await writeFile(join(outdir, "badges/nodes.json"), badge("nodes", String(nodes.length), "4fd1c5"));
+  await writeFile(join(outdir, "badges/latest.json"), badge("latest event", past[past.length - 1] ?? "n/a", "ff5d73"));
 }
 
 const options = {

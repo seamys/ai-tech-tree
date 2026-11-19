@@ -1,0 +1,20 @@
+Generative AI Tech Roadmap dataset
+Copyright (c) 2026 seamys and contributors
+
+The files in this directory (taxonomy.json, nodes.json and schema/) are
+licensed under the Creative Commons Attribution 4.0 International License
+(CC BY 4.0).
+
+You are free to share and adapt this material for any purpose, including
+commercially, as long as you give appropriate credit, provide a link to the
+license, and indicate if changes were made.
+
+Suggested attribution:
+
+  "Generative AI Tech Roadmap" by seamys and contributors,
+  https://github.com/seamys/ai-tech-tree, licensed under CC BY 4.0.
+
+Full legal code: https://creativecommons.org/licenses/by/4.0/legalcode
+
+Node summaries are original descriptions written for this project. Linked
+sources (papers, announcements, reports) remain under their own licenses.
