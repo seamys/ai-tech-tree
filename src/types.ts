@@ -37,6 +37,14 @@ export interface Taxonomy {
   criteria: Record<string, Bilingual>;
 }
 
+export interface GeoPoint {
+  lat: number;
+  lon: number;
+  place: Bilingual;
+  /** origin (default) or target; targets get an arc from the origins. */
+  role?: "origin" | "target";
+}
+
 export type Kind = "paper" | "release" | "event" | "constraint" | "upcoming";
 export type Level = 1 | 2 | 3;
 
@@ -58,6 +66,7 @@ export interface TechNode {
   added_at?: string;
   confidence?: number;
   agent_reason?: Bilingual;
+  geo?: GeoPoint[];
 }
 
 export type TimeMode = "focus" | "linear";

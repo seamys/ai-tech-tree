@@ -61,6 +61,8 @@ const options = {
   target: ["es2022", "chrome111", "safari16.4", "firefox115"],
   outdir: join(outdir, "assets"),
   entryNames: dev ? "[name]" : "[name]-[hash]",
+  chunkNames: "chunks/[name]-[hash]",
+  splitting: true, // lazy components (e.g. the globe) become separate chunks
   minify: !dev,
   sourcemap: true,
   metafile: true,

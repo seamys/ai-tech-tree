@@ -5,6 +5,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-20
+
+### Added
+- Globe in the detail panel: opening a node turns it to where the event happened, with a ripple marker. Policies, supply shocks and lawsuits draw a great-circle arc from origin to the places affected. It is drag-to-rotate, follows the active theme and respects `prefers-reduced-motion`.
+- Optional `geo` field on nodes (`lat`, `lon`, bilingual `place`, `role: origin | target`), validated by the schema and `scripts/validate.mjs`. 134 of 137 nodes now have it.
+- `data/geo/land-110m.json`, derived from public-domain Natural Earth.
+
+### Changed
+- The globe and its map data load lazily as a separate chunk the first time a panel opens, so the initial bundle did not grow.
+
 ## [1.1.0] - 2026-11-20
 
 ### Added
@@ -32,6 +42,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Performance
 - Pan and zoom run outside React: one transform and one CSS variable per frame, pooled time ticks, viewport culling. Main-thread time per pan frame dropped from 3.3 ms to 1.7 ms compared with the previous single-file page.
 
-[Unreleased]: https://github.com/seamys/ai-tech-tree/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/seamys/ai-tech-tree/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/seamys/ai-tech-tree/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/seamys/ai-tech-tree/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/seamys/ai-tech-tree/releases/tag/v1.0.0

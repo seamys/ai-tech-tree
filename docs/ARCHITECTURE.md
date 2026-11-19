@@ -59,6 +59,15 @@ Branch and zone colours live in `data/taxonomy.json` and are shared by all theme
 
 Adding a theme takes three steps: add an entry to `THEMES` and `THEME_ORDER`, add a `[data-theme]` block to `styles.css`, and add the id to the regex in `index.html`.
 
+## Globe
+
+The detail panel opens with a small orthographic globe (`src/components/Globe.tsx`) that turns to the node's `geo` points. It is drawn with `d3-geo` on a single canvas: sphere, graticule, Natural Earth 110m land (`data/geo/land-110m.json`, coordinates rounded to 0.1°, about 20 KB gzipped), then dashed great-circle arcs from each `origin` to each `target`, then markers and labels on the visible hemisphere only.
+
+- **Camera.** It points at the origin, or, when the node has targets, at the midpoint between the origin and target centroids, so both ends of the arc stay in view. Rotation follows `geoInterpolate`, and its duration scales with the angle travelled.
+- **Cost.** The component and the land file are a separate chunk (`React.lazy` + esbuild `splitting`) that loads the first time a panel opens. Animation runs for about 3 seconds and then stops, so an open panel costs nothing while idle. With `prefers-reduced-motion` the globe jumps straight to its final frame.
+- **Theming.** Colours come from `--globe-*` custom properties in each `[data-theme]` block; arcs use the node's branch colour, or the warning colour for constraints.
+- Dragging rotates the globe; the latitude is clamped so it cannot flip.
+
 ## Time axis
 
 Time is fractional months since January 2006. `makeScale("focus")` maps it with a log curve anchored at the current moment, `x = xNow − C·ln(1 + (now − t)/τ)`: the last year gets about as much width as the decade before it. Future events use a linear extension to the right of the "now" line. The clock updates every minute; the view stays anchored on the same moment.

@@ -1,6 +1,6 @@
 {
   "name": "ai-tech-tree",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "description": "Interactive generative AI tech roadmap: from minerals and energy to applications, on a live timeline.",
   "keywords": [
@@ -35,10 +35,12 @@
     "check": "npm run validate && npm run typecheck"
   },
   "dependencies": {
+    "d3-geo": "^3.1.1",
     "react": "19.3.1",
     "react-dom": "19.3.1"
   },
   "devDependencies": {
+    "@types/d3-geo": "^3.1.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "esbuild": "0.28.2",

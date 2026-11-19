@@ -135,7 +135,7 @@ export function App({ taxonomy, initialNodes }: { taxonomy: Taxonomy; initialNod
       <ZoomControls lang={lang} lod={lod} onZoom={(f) => canvas.current?.zoomBy(f)} onFit={() => canvas.current?.fit()}
         onRoots={() => canvas.current?.toRoots()} onTop={() => canvas.current?.toTop()} />
       <Timebar lang={lang} nowM={scale.nowM} cursorM={cursorM} onCursor={setCursorM} />
-      <SidePanel panel={panel} onClose={() => setPanel(null)} lang={lang} tax={themedTax} index={index} nodes={nodes}
+      <SidePanel panel={panel} onClose={() => setPanel(null)} lang={lang} theme={theme} tax={themedTax} index={index} nodes={nodes}
         nodesById={nodesById} scale={scale} now={now} onSelect={select} onReview={review} />
       <div className={`toast${toast ? " show" : ""}`} role="status">{toast}</div>
     </div>

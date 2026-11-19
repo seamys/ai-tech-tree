@@ -16,5 +16,8 @@ Suggested attribution:
 
 Full legal code: https://creativecommons.org/licenses/by/4.0/legalcode
 
+data/geo/land-110m.json is derived from Natural Earth 110m land
+(https://www.naturalearthdata.com), which is in the public domain.
+
 Node summaries are original descriptions written for this project. Linked
 sources (papers, announcements, reports) remain under their own licenses.

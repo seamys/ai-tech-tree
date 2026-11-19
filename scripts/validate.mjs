@@ -20,7 +20,7 @@ const DATE = /^\d{4}(-\d{2}(-\d{2})?)?$/;
 const ID = /^[a-z0-9][a-z0-9-]*$/;
 const KINDS = new Set(["paper", "release", "event", "constraint", "upcoming"]);
 const ALLOWED = new Set(["id", "date", "branch", "parents", "level", "kind", "title", "summary", "source", "url",
-  "criteria", "tags", "status", "added_by", "added_at", "confidence", "agent_reason"]);
+  "criteria", "tags", "status", "added_by", "added_at", "confidence", "agent_reason", "geo"]);
 
 // --- taxonomy ---------------------------------------------------------------
 const zoneIds = new Set(tax.zones.map((z) => z.id));
@@ -75,6 +75,18 @@ for (const n of nodes) {
   if (!["verified", "candidate"].includes(n.status)) err(`${where}: status must be verified or candidate`);
   if (n.status === "candidate" && !isBilingual(n.agent_reason)) err(`${where}: candidates need agent_reason {zh,en}`);
   if (n.confidence !== undefined && !(n.confidence >= 0 && n.confidence <= 1)) err(`${where}: confidence must be 0..1`);
+  if (n.geo !== undefined) {
+    if (!Array.isArray(n.geo) || !n.geo.length) err(`${where}: geo must be a non-empty array (omit it when there is no single place)`);
+    else {
+      for (const g of n.geo) {
+        if (!(typeof g.lat === "number" && g.lat >= -90 && g.lat <= 90)) err(`${where}: geo lat out of range`);
+        if (!(typeof g.lon === "number" && g.lon >= -180 && g.lon <= 180)) err(`${where}: geo lon out of range`);
+        if (!isBilingual(g.place)) err(`${where}: geo place must be {zh,en}`);
+        if (g.role !== undefined && !["origin", "target"].includes(g.role)) err(`${where}: geo role must be origin or target`);
+      }
+      if (!n.geo.some((g) => (g.role ?? "origin") === "origin")) err(`${where}: geo needs at least one origin point`);
+    }
+  }
   if (n.kind === "upcoming" && n.date < new Date().toISOString().slice(0, 10)) warnings.push(`${where}: "upcoming" node is in the past; update its kind`);
 }
 for (const n of nodes) for (const p of n.parents ?? []) {

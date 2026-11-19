@@ -450,3 +450,35 @@ pre { background: var(--raised); border: 1px solid var(--line); border-radius: v
   /* .top has backdrop-filter, so "fixed" here is relative to the header. */
   .thememenu { position: fixed; top: calc(var(--header-h) - 4px); left: 8px; right: 8px; min-width: 0; }
 }
+
+/* ---------- globe (detail panel) ---------- */
+:root {
+  --globe-ocean: #0e1620; --globe-land: #1d2a37; --globe-coast: #2f4256; --globe-grat: rgba(255, 255, 255, .04);
+  --globe-rim: #2f4256; --globe-glow: rgba(79, 209, 197, .12);
+}
+[data-theme="observatory"] {
+  --globe-ocean: #0b0d13; --globe-land: #171a24; --globe-coast: rgba(165, 176, 255, .38); --globe-grat: rgba(255, 255, 255, .05);
+  --globe-rim: rgba(165, 176, 255, .45); --globe-glow: rgba(120, 132, 255, .22);
+}
+[data-theme="atlas"] {
+  --globe-ocean: #e6dece; --globe-land: #fbf8f1; --globe-coast: #8a7656; --globe-grat: rgba(110, 90, 60, .16);
+  --globe-rim: #6f675a; --globe-glow: none;
+}
+[data-theme="blueprint"] {
+  --globe-ocean: #0d2a4e; --globe-land: rgba(238, 245, 255, .07); --globe-coast: rgba(238, 245, 255, .85); --globe-grat: rgba(238, 245, 255, .16);
+  --globe-rim: #eef5ff; --globe-glow: none;
+}
+[data-theme="mission"] {
+  --globe-ocean: #000; --globe-land: #121212; --globe-coast: #6a6a6a; --globe-grat: #161616;
+  --globe-rim: #4a4a4a; --globe-glow: rgba(255, 59, 48, .10);
+}
+.globebox { margin: 0 0 14px; padding: 0; border-bottom: 1px solid var(--line); }
+.globe-canvas { display: block; width: 100%; height: 230px; cursor: grab; touch-action: none; }
+.globe-canvas:active { cursor: grabbing; }
+.globebox figcaption { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; padding: 6px 2px 12px; font-size: 12px; color: var(--text); }
+.globebox .place { font-size: 10px; }
+.globebox .place.target { color: var(--text-2); }
+.globebox .arrow { color: var(--text-2); padding: 0 2px; }
+.globebox .dim { color: var(--text-2); }
+.panel .close { z-index: 2; }
+@media (max-width: 720px) { .globe-canvas { height: 180px; } }

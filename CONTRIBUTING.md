@@ -17,7 +17,8 @@ A node is either a **breakthrough** (a paper, release or event that changed what
 2. **It has at least one criterion** from `data/taxonomy.json` explaining why it matters, such as `new-paradigm`, `mass-adoption` or `supply-constraint`.
 3. **The date is as precise as the source allows.** Use `YYYY`, `YYYY-MM` or `YYYY-MM-DD`, and don't invent precision the source doesn't give.
 4. **Both languages are filled in.** The `title` and `summary` fields each need `zh` and `en`. Write summaries in your own words, in one or two sentences.
-5. **`level` is honest.** `1` is reserved for true milestones. Most new nodes should be `2` or `3`.
+5. **`geo` follows one rule.** Papers and releases use the headquarters of the main institution (a university's campus). Physical events use the actual site. Policies and legal actions use the issuing jurisdiction as `origin` and add the affected parties with `"role": "target"`. If there is no single place (a global trend, a distributed dataset), leave `geo` out.
+6. **`level` is honest.** `1` is reserved for true milestones. Most new nodes should be `2` or `3`.
 
 Schema reference: [data/schema/node.schema.json](data/schema/node.schema.json).
 

@@ -4,7 +4,7 @@ import type { Bilingual, Lang } from "./types";
 const zh = {
   title1: "生成式 AI ",
   title2: "技术路线树",
-  version: "v1.1 · 语义缩放 + 实时时间轴",
+  version: "v1.2 · 语义缩放 + 实时时间轴 + 地球仪",
   docTitle: "生成式 AI 技术路线树",
   search: "搜索节点（中英文皆可）",
   timeLabel: "时间：",
@@ -40,6 +40,7 @@ const zh = {
   underground: "▼ 地下：算力与物理基础（根系）",
   nodes: "{n} 个节点",
   detailLevel: "细节级别",
+  noPlace: "无单一地点（全球性或分布式）",
   candidate: "Agent 候选 · 置信度",
   verified: "已确认",
   reasoning: "Agent 判定理由",
@@ -83,7 +84,7 @@ type Strings = typeof zh;
 const en: Strings = {
   title1: "Generative AI ",
   title2: "Tech Roadmap",
-  version: "v1.1 · semantic zoom + live timeline",
+  version: "v1.2 · semantic zoom + live timeline + globe",
   docTitle: "Generative AI Tech Roadmap",
   search: "Search nodes (EN or 中文)",
   timeLabel: "Time: ",
@@ -119,6 +120,7 @@ const en: Strings = {
   underground: "▼ UNDERGROUND: compute & physical foundations (roots)",
   nodes: "{n} nodes",
   detailLevel: "Detail level",
+  noPlace: "No single location (global or distributed)",
   candidate: "Agent candidate · confidence",
   verified: "Verified",
   reasoning: "Agent's reasoning",

@@ -41,6 +41,7 @@ This project puts everything on one tree:
 | **Live timeline** | Log-scaled "recent focus" axis (or linear); a real-time "now" line; nodes from the last 30 days pulse; scheduled future events sit right of "now"; replay the tree's growth since 2010. |
 | **Breakthroughs and constraints** | ● papers, releases, events · ◆ export controls, capacity shortages, power limits, lawsuits |
 | **Built for review** | Every node carries sources and "why it counts" criteria; agent-proposed nodes wait in a review queue. |
+| **Where it happened** | Opening a node turns a small globe to where it happened. Policies and supply shocks draw an arc from origin to the places they hit, such as Washington → China or Spruce Pine → Asian fabs. |
 | **Four themes** | Observatory (default), Atlas, Blueprint and Mission Control. Pick one from the header; it is remembered per device. |
 | **Bilingual** | 中文 / English for interface and content. Toggle top-right, or open `#zh` / `#en`. |
 
@@ -80,6 +81,7 @@ Requires Node.js 22+. CI uses the version in [`.nvmrc`](.nvmrc).
 data/                     content (CC BY 4.0), fetched at runtime
 ├── taxonomy.json         zones, layers, branches, tags, criteria
 ├── nodes.json            one node per line, readable diffs
+├── geo/land-110m.json    Natural Earth land outlines for the globe
 └── schema/               JSON Schema for nodes
 src/                      app (MIT)
 ├── lib/time.ts           linear and "recent focus" time scales
@@ -106,6 +108,7 @@ Data and code are separate: adding a node never touches `src/`. Design and perfo
   "summary": { "zh": "…", "en": "…" },
   "source": "DeepSeek", "url": "https://arxiv.org/abs/2412.19437",
   "criteria": ["open-ecosystem", "training-efficiency"],
+  "geo": [{ "lat": 30.27, "lon": 120.16, "place": { "zh": "杭州", "en": "Hangzhou" } }],
   "status": "verified"        // or "candidate" (agent-proposed, awaiting review)
 }
 ```
@@ -120,6 +123,8 @@ Corrections and new nodes are very welcome. Every fact needs a primary source. S
 
 - [x] Bilingual tree with 10 layers, semantic zoom and a live timeline
 - [x] Data/code split with schema validation in CI
+- [x] Globe showing where each event happened
+- [ ] Full-screen map view with replay
 - [ ] Scheduled agent that proposes candidate nodes from arXiv, vendor announcements, IEA and export-control notices
 - [ ] Weekly digest notifications for subscribed branches
 - [ ] Permalinks to nodes and views

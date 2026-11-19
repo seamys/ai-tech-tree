@@ -3,11 +3,17 @@ import type { Lang, TechNode, Taxonomy } from "../types";
 import type { TaxIndex } from "../lib/layout";
 import { ageOf, formatNow, type TimeScale } from "../lib/time";
 import { loc, relativeTime, t } from "../i18n";
+import type { ThemeId } from "../themes";
+import { lazy, Suspense } from "react";
+
+// The globe (d3-geo + land outline) loads on first use, keeping the initial bundle small.
+const Globe = lazy(() => import("./Globe"));
 
 export type PanelState = { type: "node"; id: string } | { type: "queue" } | { type: "feed" } | null;
 
 interface Common {
   lang: Lang;
+  theme: ThemeId;
   tax: Taxonomy;
   index: TaxIndex;
   nodes: TechNode[];
@@ -32,14 +38,29 @@ function NodeChip({ n, index, lang, onSelect }: { n: TechNode; index: TaxIndex; 
 }
 
 function NodeDetail({ node: n, ...c }: Common & { node: TechNode }) {
-  const { lang, tax, index, nodes, nodesById, scale, onSelect, onReview } = c;
+  const { lang, theme, tax, index, nodes, nodesById, scale, onSelect, onReview } = c;
   const color = index.colorOfBranch(n.branch);
   const children = nodes.filter((x) => x.parents.includes(n.id));
   const kind = n.kind === "constraint" ? ["kindConstraint", "var(--warn)"] as const
     : n.kind === "event" ? ["kindEvent", "var(--text-2)"] as const
     : n.kind === "upcoming" ? ["kindUpcoming", "var(--now)"] as const : null;
+  const origins = (n.geo ?? []).filter((g) => (g.role ?? "origin") === "origin");
+  const targets = (n.geo ?? []).filter((g) => g.role === "target");
   return (
     <>
+      <figure className="globebox">
+        <Suspense fallback={<div className="globe-canvas" />}>
+          <Globe points={n.geo} lang={lang} theme={theme} accent={color} constraint={n.kind === "constraint"} />
+        </Suspense>
+        <figcaption>
+          {n.geo?.length ? (
+            <>
+              <span className="place origin" style={{ color }}>●</span>{origins.map((g) => g.place[lang]).join(" · ")}
+              {targets.length > 0 && <><span className="arrow">→</span><span className="place target">○</span>{targets.map((g) => g.place[lang]).join(" · ")}</>}
+            </>
+          ) : <span className="dim">{t(lang, "noPlace")}</span>}
+        </figcaption>
+      </figure>
       <div className="meta">
         <span className="tag" style={{ color, borderColor: `${color}55` }}>{branchLabel(n.branch, index, lang)}</span>
         <span>{n.date} · {relativeTime(ageOf(n.date, scale.nowM), lang)}</span>
