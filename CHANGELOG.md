@@ -5,6 +5,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-11-20
+
+### Fixed
+- Text no longer changes size while zooming. Labels and markers now keep a constant on-screen size at every zoom and level of detail; before, they shrank, held, then grew, and jumped at each level change.
+
+### Changed
+- Overlapping labels are hidden by priority (selected, search hits, new, milestones, recent) instead of being drawn on top of each other. A label moves to the left of its dot when the right side is taken. Hover a node to see a hidden label.
+- Sticky captions on the left edge no longer stack on top of each other when zoomed out.
+
 ## [1.2.0] - 2026-11-20
 
 ### Added
@@ -42,7 +51,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Performance
 - Pan and zoom run outside React: one transform and one CSS variable per frame, pooled time ticks, viewport culling. Main-thread time per pan frame dropped from 3.3 ms to 1.7 ms compared with the previous single-file page.
 
-[Unreleased]: https://github.com/seamys/ai-tech-tree/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/seamys/ai-tech-tree/compare/v1.2.1...HEAD
+[1.2.1]: https://github.com/seamys/ai-tech-tree/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/seamys/ai-tech-tree/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/seamys/ai-tech-tree/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/seamys/ai-tech-tree/releases/tag/v1.0.0

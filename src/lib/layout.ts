@@ -5,7 +5,8 @@ import { ageOf, isRecent, toM, type TimeScale } from "./time";
 
 export const TOP = 120;
 export const TRUNK_X = 150;
-/** Text scale per level of detail: labels are drawn larger when zoomed out so they stay readable. */
+/** Spacing factor per level of detail. Labels have a constant screen size, so lanes get more
+ *  world-space room at the coarser levels, where the typical zoom is lower. */
 export const LOD_TEXT_SCALE: Record<Lod, number> = { 0: 2.0, 1: 1.5, 2: 1.0 };
 /** Vertical slots for labels around a lane: alternating above/below. */
 const ROW_OFFSETS = [-30, 30, -66, 66, -102, 102, -138, 138, -174, 174, -210, 210];

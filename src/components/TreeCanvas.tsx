@@ -3,7 +3,7 @@
 // applied imperatively inside requestAnimationFrame.
 import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, type ReactElement } from "react";
 import type { Lang, Lod, TechNode } from "../types";
-import { LOD_TEXT_SCALE, TOP, type Layout, type TaxIndex } from "../lib/layout";
+import { TOP, type Layout, type TaxIndex } from "../lib/layout";
 import { formatNow, tickKind, T0, type TimeScale } from "../lib/time";
 import { monthLabel, t } from "../i18n";
 import { TreeLayer } from "./TreeLayer";
@@ -76,6 +76,83 @@ const LinksLayer = memo(function LinksLayer({ layout, nodesById, index, selected
   return <g className="links">{paths}</g>;
 });
 
+interface NodeEl { el: SVGGElement; x: number; y: number; culled: boolean; above: boolean; t: number; w: number; dw: number; nolab: boolean; left: boolean }
+
+// Label widths come from canvas measureText with each label's computed font, which also
+// works for labels that are currently hidden (getComputedTextLength would return 0).
+let measureCtx: CanvasRenderingContext2D | null = null;
+const widthCache = new Map<string, number>();
+function measure(el: SVGTextElement | null): number {
+  if (!el) return 0;
+  const cs = getComputedStyle(el);
+  let text = el.firstChild?.textContent ?? "";
+  if (cs.textTransform === "uppercase") text = text.toUpperCase();
+  const font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+  const key = font + "|" + cs.letterSpacing + "|" + text;
+  let w = widthCache.get(key);
+  if (w === undefined) {
+    measureCtx ??= document.createElement("canvas").getContext("2d");
+    if (!measureCtx) return text.length * 7;
+    measureCtx.font = font;
+    w = measureCtx.measureText(text).width + (parseFloat(cs.letterSpacing) || 0) * text.length;
+    if (el.querySelector(".badge-fresh")) w += 32;
+    widthCache.set(key, w);
+  }
+  return w;
+}
+
+/** Lower is more important: it claims screen space first. */
+function rank(c: DOMTokenList): number {
+  if (c.contains("sel")) return 0;
+  if (c.contains("hit")) return 1;
+  if (c.contains("dim") || c.contains("untag") || c.contains("notyet")) return 9;
+  if (c.contains("fresh")) return 2;
+  if (c.contains("l1")) return 3;
+  if (c.contains("recent") || c.contains("future")) return 4;
+  return c.contains("l2") ? 5 : 6;
+}
+
+/** Greedy label placement: labels keep a constant on-screen size, so instead of shrinking
+ *  them when zoomed out we hide the ones that would overlap a more important label. */
+function declutter(items: NodeEl[], k: number, compact: boolean) {
+  const order = items.map((n) => ({ n, r: rank(n.el.classList) })).sort((a, b) => a.r - b.r || b.n.t - a.n.t);
+  const CELL = 64, grid = new Map<number, number[][]>();
+  const keyOf = (gx: number, gy: number) => (gx + 30000) * 60000 + (gy + 30000);
+  const add = (box: number[]) => {
+    for (let gx = Math.floor(box[0] / CELL); gx <= Math.floor(box[1] / CELL); gx++)
+      for (let gy = Math.floor(box[2] / CELL); gy <= Math.floor(box[3] / CELL); gy++) {
+        const key = keyOf(gx, gy), list = grid.get(key);
+        if (list) list.push(box); else grid.set(key, [box]);
+      }
+  };
+  // Markers are obstacles too: a label never runs over another node's dot.
+  for (const n of items) if (!n.el.classList.contains("notyet")) add([n.x * k - 7, n.x * k + 7, n.y * k - 7, n.y * k + 7]);
+  const hits = (box: number[]) => {
+    for (let gx = Math.floor(box[0] / CELL); gx <= Math.floor(box[1] / CELL); gx++)
+      for (let gy = Math.floor(box[2] / CELL); gy <= Math.floor(box[3] / CELL); gy++)
+        for (const b of grid.get(keyOf(gx, gy)) ?? [])
+          if (box[0] < b[1] && box[1] > b[0] && box[2] < b[3] && box[3] > b[2]) return true;
+    return false;
+  };
+  for (const { n, r } of order) {
+    let show = !(compact && n.el.classList.contains("minor")), left = false;
+    if (show) {
+      const withDate = !compact, sx = n.x * k, sy = n.y * k;
+      const w = Math.max(n.w, withDate ? n.dw : 0) + 4;
+      const y0 = sy + (n.above ? -15 : -9), y1 = sy + (n.above ? (withDate ? 14 : 3) : (withDate ? 21 : 8));
+      // Prefer the right of the dot; fall back to the left; otherwise hide (the selection always shows).
+      let box = [sx + 9, sx + 11 + w, y0, y1];
+      if (hits(box)) {
+        const alt = [sx - 11 - w, sx - 9, y0, y1];
+        if (!hits(alt)) { box = alt; left = true; } else show = r === 0;
+      }
+      if (show) add(box);
+    }
+    if (n.nolab === show) { n.nolab = !show; n.el.classList.toggle("nolab", !show); }
+    if (n.left !== left) { n.left = left; n.el.classList.toggle("lft", left); }
+  }
+}
+
 export const TreeCanvas = forwardRef<CanvasHandle, Props>(function TreeCanvas(props, ref) {
   const { layout, scale, index, nodesById, lang, lod, onLodChange, selectedId, focusRequest, onSelect,
     query, activeTag, showLinks, cursorM, now, panelOpen, onZoneClick } = props;
@@ -96,7 +173,9 @@ export const TreeCanvas = forwardRef<CanvasHandle, Props>(function TreeCanvas(pr
   // Mutable mirrors so the rAF loop always sees current props without re-binding listeners.
   const live = useRef({ layout, scale, lod, lang, now, cursorM, panelOpen });
   live.current = { layout, scale, lod, lang, now, cursorM, panelOpen };
-  const nodeEls = useRef<{ el: SVGGElement; x: number; y: number; culled: boolean }[]>([]);
+  const nodeEls = useRef<NodeEl[]>([]);
+  // Label decluttering depends only on zoom (not pan), so it reruns when k or the inputs change.
+  const declutterKey = useRef("");
   const labelEls = useRef<{ el: HTMLElement; y: number; hidden: boolean }[]>([]);
 
   const viewWidth = () => {
@@ -128,9 +207,12 @@ export const TreeCanvas = forwardRef<CanvasHandle, Props>(function TreeCanvas(pr
     }
 
     world.setAttribute("transform", `translate(${v.x} ${v.y}) scale(${v.k})`);
-    // Counter-scale labels when zoomed out so they stay readable (one CSS variable, no per-node work).
-    svg.style.setProperty("--s", String(Math.min(Math.max(1 / v.k, 1), LOD_TEXT_SCALE[lod])));
-    svg.classList.toggle("compact", lod === 0 || v.k < 0.72);
+    // Labels and markers keep a constant on-screen size at every zoom (one CSS variable, no per-node work).
+    svg.style.setProperty("--s", String(1 / v.k));
+    const compact = lod === 0 || v.k < 0.72;
+    svg.classList.toggle("compact", compact);
+    const dk = `${v.k.toFixed(4)}|${compact}`;
+    if (dk !== declutterKey.current) { declutterKey.current = dk; declutter(nodeEls.current, v.k, compact); }
 
     // Viewport culling: hide nodes far outside the screen.
     const margin = 400;
@@ -141,9 +223,12 @@ export const TreeCanvas = forwardRef<CanvasHandle, Props>(function TreeCanvas(pr
     }
 
     // Sticky labels on the left edge.
-    for (const l of labelEls.current) {
+    let lastSy = -Infinity;
+    for (const l of labelEls.current) { // sorted by y
       const sy = v.y + l.y * v.k;
-      const hide = sy < LABEL_TOP || sy > H - 64; // keep clear of the bottom controls
+      // Keep clear of the header and bottom controls, and never stack two captions on one line.
+      const hide = sy < LABEL_TOP || sy > H - 64 || sy - lastSy < 18;
+      if (!hide) lastSy = sy;
       if (hide !== l.hidden) { l.hidden = hide; l.el.style.visibility = hide ? "hidden" : ""; }
       if (!hide) l.el.style.transform = `translate3d(0,${sy}px,0)`;
     }
@@ -234,9 +319,13 @@ export const TreeCanvas = forwardRef<CanvasHandle, Props>(function TreeCanvas(pr
     const world = worldRef.current!;
     nodeEls.current = [...world.querySelectorAll<SVGGElement>("g.node")].map((el) => {
       const p = layout.positions.get(el.dataset.id!)!;
-      return { el, x: p.x, y: p.y, culled: false };
+      const [title, date] = el.querySelectorAll("text");
+      el.classList.remove("nolab", "lft");
+      return { el, x: p.x, y: p.y, culled: false, above: p.above, t: Number(el.dataset.t), w: measure(title), dw: measure(date), nolab: false, left: false };
     });
-    labelEls.current = [...labelsRef.current!.querySelectorAll<HTMLElement>("[data-y]")].map((el) => ({ el, y: Number(el.dataset.y), hidden: false }));
+    declutterKey.current = "";
+    labelEls.current = [...labelsRef.current!.querySelectorAll<HTMLElement>("[data-y]")].map((el) => ({ el, y: Number(el.dataset.y), hidden: false }))
+      .sort((a, b) => a.y - b.y);
 
     const v = view.current, P = pending.current;
     if (!fitted.current) { fitted.current = true; doFit(); }
@@ -263,10 +352,26 @@ export const TreeCanvas = forwardRef<CanvasHandle, Props>(function TreeCanvas(pr
   // Playback cursor: fade nodes that haven't happened yet (class toggle only).
   useEffect(() => {
     for (const { el } of nodeEls.current) el.classList.toggle("notyet", cursorM !== null && Number(el.dataset.t) > cursorM);
-    apply();
+    declutterKey.current = ""; apply();
   }, [cursorM, layout, apply]);
 
   useEffect(() => { apply(); }, [now, panelOpen, lang, apply]);
+
+  // Selection, search and tag filters change label priorities.
+  useEffect(() => { declutterKey.current = ""; apply(); }, [selectedId, query, activeTag, apply]);
+
+  // A theme or web-font change alters label widths: re-measure and re-place.
+  useEffect(() => {
+    const remeasure = () => {
+      widthCache.clear();
+      for (const n of nodeEls.current) { const [a, b] = n.el.querySelectorAll("text"); n.w = measure(a); n.dw = measure(b); }
+      declutterKey.current = ""; apply();
+    };
+    const mo = new MutationObserver(remeasure);
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    void document.fonts?.ready.then(remeasure);
+    return () => mo.disconnect();
+  }, [apply]);
 
   // ---------------------------------------------------------------- input
   useEffect(() => {

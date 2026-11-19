@@ -46,8 +46,9 @@ function TreeLayerImpl({ layout, scale, index, lang, lod, selectedId, query, act
         {lanes.length > 0 && (
           <>
             <line x1={TRUNK_X} x2={TRUNK_X} y1={TOP - 40} y2={lanes[lanes.length - 1].y} className="trunk" />
-            <circle cx={TRUNK_X} cy={TOP - 46} r={9} className="stack-dot" />
-            <text x={TRUNK_X + 16} y={TOP - 41} className="stack-root">{t(lang, "stackRoot")}</text>
+            <g transform={`translate(${TRUNK_X} ${TOP - 46})`}>
+              <g className="ns"><circle r={9} className="stack-dot" /><text x={16} y={5} className="stack-root">{t(lang, "stackRoot")}</text></g>
+            </g>
           </>
         )}
         {lanes.map((lane) => {

@@ -116,8 +116,13 @@ button { font: inherit; color: inherit; }
 .limb-stale { fill: none; stroke-width: 2; stroke-dasharray: 3 6; opacity: .35; }
 .twig { stroke-width: 1.2; opacity: var(--twig-op); }
 .node { cursor: pointer; }
-/* --s is set once per frame on the <svg>: labels counter-scale when zoomed out. */
-.node .ns { transform: scale(var(--s, 1)); }
+/* --s = 1/zoom, set once per frame on the <svg>: markers and labels keep a constant screen size. */
+.ns { transform: scale(var(--s, 1)); }
+/* Labels that would overlap a more important one are hidden; hovering a node reveals its label. */
+.node.nolab text { display: none; }
+.node.lft text { text-anchor: end; transform: translateX(-22px); }
+.node.nolab:hover text { display: inline; }
+.compact .node.minor.nolab:hover .date { display: none; }
 .node .shape { fill: currentColor; stroke: var(--halo); stroke-width: 2; }
 .node text { font: 12px var(--font-label); fill: var(--text); paint-order: stroke; stroke: var(--halo); stroke-width: 4px; stroke-linejoin: round; }
 .node .date { font: 10px var(--font-mono); fill: var(--text-2); }

@@ -36,7 +36,8 @@ pointer / wheel ──► view {x, y, k} ──► requestAnimationFrame ──�
 Pan and zoom never trigger a React render. `applyNow()` runs at most once per animation frame and does only cheap, imperative work:
 
 - Sets one `transform` on the world group.
-- Sets one CSS variable `--s`. Node labels counter-scale through `transform: scale(var(--s))` in CSS, so zoomed-out text stays readable with no per-node JavaScript.
+- Sets one CSS variable `--s = 1/zoom`. Markers and labels counter-scale through `transform: scale(var(--s))`, so they keep the same on-screen size at every zoom level, as on a map. Only positions and spacing change.
+- Declutters labels when the zoom changes (not on pan, because overlaps do not depend on translation). Placement is greedy by priority: selected node, search hits, new, milestones, recent, then the rest. Dots are obstacles. Each label tries the right of its dot, then the left, and is otherwise hidden; hovering a node reveals its label. Widths come from `measureText` with each label's computed font, are cached, and are re-measured when the theme or web fonts change. A uniform grid keeps each pass at about O(n).
 - Moves the sticky zone/layer/branch labels with `translate3d`, and touches `visibility` only when it actually changes.
 - Draws time ticks only for months inside the viewport, from a pool of reused DOM nodes. Years take priority, then quarters, then months.
 - Culls nodes far outside the viewport (`display: none`, toggled only on change). This keeps the cost flat as the tree grows.
