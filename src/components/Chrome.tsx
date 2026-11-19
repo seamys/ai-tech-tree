@@ -1,18 +1,19 @@
 // Header, legend, zoom controls and the playback bar.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { THEMES, THEME_ORDER, type ThemeId } from "../themes";
 import type { Lang, Lod, TimeMode, Taxonomy } from "../types";
 import { formatYM } from "../lib/time";
 import { t } from "../i18n";
 
 export function Header(p: {
-  lang: Lang; query: string; timeMode: TimeMode; showLinks: boolean; candidates: number; theme: ThemeId;
+  lang: Lang; query: string; timeMode: TimeMode; showLinks: boolean; candidates: number; theme: ThemeId; focus: ReactNode;
   onTheme(id: ThemeId): void; onQuery(q: string): void; onSearchEnter(): void; onLang(): void; onTimeMode(): void; onLinks(): void; onFeed(): void; onQueue(): void;
 }) {
   const { lang } = p;
   return (
     <header className="top">
       <h1><span className="long">{t(lang, "title1")}</span>{t(lang, "title2")}<small>{t(lang, "version")}</small></h1>
+      {p.focus}
       <input className="search" type="search" value={p.query} placeholder={t(lang, "search")}
         onChange={(e) => p.onQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && p.onSearchEnter()} />
       <div className="spacer" />

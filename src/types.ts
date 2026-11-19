@@ -29,7 +29,17 @@ export interface Tag {
   name: Bilingual;
 }
 
+/** A curated focus preset. Branch ids are top-level (sub-branches are included). Empty = everything. */
+export interface Lens {
+  id: string;
+  name: Bilingual;
+  description: Bilingual;
+  branches?: string[];
+  tags?: string[];
+}
+
 export interface Taxonomy {
+  lenses?: Lens[];
   zones: Zone[];
   layers: Layer[];
   branches: Branch[];

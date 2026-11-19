@@ -7,6 +7,8 @@ import { initialTheme, paint, persistTheme, THEMES, type ThemeId } from "./theme
 import { TreeCanvas, type CanvasHandle } from "./components/TreeCanvas";
 import { SidePanel, type PanelState } from "./components/Panels";
 import { Header, Legend, Timebar, ZoomControls } from "./components/Chrome";
+import { FocusMenu, LensPicker } from "./components/Focus";
+import { ALL, focusTest, loadFocus, saveFocus, type Focus } from "./lib/focus";
 
 export function App({ taxonomy, initialNodes }: { taxonomy: Taxonomy; initialNodes: TechNode[] }) {
   const [nodes, setNodes] = useState(initialNodes);
@@ -24,6 +26,10 @@ export function App({ taxonomy, initialNodes }: { taxonomy: Taxonomy; initialNod
   const [toast, setToast] = useState<string | null>(null);
   const [hintGone, setHintGone] = useState(false);
   const canvas = useRef<CanvasHandle>(null);
+  // Focus: null on a first visit, which opens the lens picker.
+  const [focus, setFocusState] = useState<Focus>(() => loadFocus(taxonomy) ?? ALL);
+  const [lensOpen, setLensOpen] = useState(() => loadFocus(taxonomy) === null);
+  const [focusMenuOpen, setFocusMenuOpen] = useState(false);
 
   // Branch and zone colours come from data; each theme remaps them into its own palette.
   const themedTax = useMemo<Taxonomy>(() => ({
@@ -35,7 +41,22 @@ export function App({ taxonomy, initialNodes }: { taxonomy: Taxonomy; initialNod
   const nodesById = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
   const nowMinute = Math.floor(dateToM(now) * 30.5 * 1440); // changes once per minute
   const scale = useMemo(() => makeScale(timeMode, dateToM(now)), [timeMode, nowMinute]); // eslint-disable-line react-hooks/exhaustive-deps
-  const layout = useMemo(() => computeLayout({ nodes, tax: themedTax, index, lod, lang, scale }), [nodes, themedTax, index, lod, lang, scale]);
+  const inFocus = useMemo(() => focusTest(focus, taxonomy), [focus, taxonomy]);
+  const selectedId = panel?.type === "node" ? panel.id : null;
+  // "hide" drops out-of-focus nodes from the layout (but keeps the selected one so it can be shown).
+  const layoutNodes = useMemo(() => (focus.mode === "hide" ? nodes.filter((n) => inFocus(n) || n.id === selectedId) : nodes),
+    [nodes, focus.mode, inFocus, selectedId]);
+  const layout = useMemo(() => computeLayout({ nodes: layoutNodes, tax: themedTax, index, lod, lang, scale }), [layoutNodes, themedTax, index, lod, lang, scale]);
+
+  const setFocus = useCallback((f: Focus) => {
+    setFocusState((prev) => {
+      if (prev === f) return prev;
+      // Hiding changes the tree's shape, so re-fit; dimming keeps the view where it is.
+      if (prev.mode === "hide" || f.mode === "hide") canvas.current?.fitAfterLayout();
+      return f;
+    });
+    saveFocus(f, taxonomy.lenses ?? []);
+  }, [taxonomy]);
 
   // Real clock: the "now" line moves every minute; the view stays anchored.
   useEffect(() => {
@@ -71,9 +92,10 @@ export function App({ taxonomy, initialNodes }: { taxonomy: Taxonomy; initialNod
     // Make sure the node is drawn at the current level of detail; raise it if needed.
     const need = (isRecent(ageOf(n.date, scale.nowM)) || ageOf(n.date, scale.nowM) < 0 ? 0 : n.level - 1) as Lod;
     if (need > lod) setLod(need);
+    if (focus.mode === "hide" && !inFocus(n)) setToast(t(lang, "focusOutside"));
     setPanel({ type: "node", id });
     setFocusRequest({ id, nonce: Date.now() });
-  }, [nodesById, lod, scale]);
+  }, [nodesById, lod, scale, focus.mode, inFocus, lang]);
 
   const review = useCallback((id: string, approve: boolean) => {
     const n = nodesById.get(id);
@@ -124,11 +146,13 @@ export function App({ taxonomy, initialNodes }: { taxonomy: Taxonomy; initialNod
     <div className="app" onPointerDown={() => setHintGone(true)}>
       <Header lang={lang} query={query} timeMode={timeMode} showLinks={showLinks} candidates={candidates}
         theme={theme} onTheme={(id) => { setTheme(id); persistTheme(id); }}
+        focus={<FocusMenu lang={lang} tax={themedTax} index={index} nodes={nodes} focus={focus} onFocus={setFocus}
+          open={focusMenuOpen} onOpen={setFocusMenuOpen} onLenses={() => { setFocusMenuOpen(false); setLensOpen(true); }} />}
         onQuery={setQuery} onSearchEnter={searchEnter} onLang={switchLang} onTimeMode={toggleTimeMode}
         onLinks={() => setShowLinks((x) => !x)} onFeed={() => setPanel({ type: "feed" })} onQueue={() => setPanel({ type: "queue" })} />
       <Legend lang={lang} tax={themedTax} activeTag={activeTag} onZone={(id) => canvas.current?.focusZone(id)} onTag={toggleTag} />
       <TreeCanvas ref={canvas} layout={layout} scale={scale} index={index} nodesById={nodesById} lang={lang} lod={lod}
-        onLodChange={setLod} selectedId={panel?.type === "node" ? panel.id : null} focusRequest={focusRequest} onSelect={select}
+        onLodChange={setLod} selectedId={selectedId} inFocus={inFocus} focusRequest={focusRequest} onSelect={select}
         query={query} activeTag={activeTag} showLinks={showLinks} cursorM={cursorM} now={now} panelOpen={panel !== null}
         onZoneClick={(id) => canvas.current?.focusZone(id)} />
       <div className={`hint${hintGone ? " gone" : ""}`}>{t(lang, "hint")}</div>
@@ -138,6 +162,12 @@ export function App({ taxonomy, initialNodes }: { taxonomy: Taxonomy; initialNod
       <SidePanel panel={panel} onClose={() => setPanel(null)} lang={lang} theme={theme} tax={themedTax} index={index} nodes={nodes}
         nodesById={nodesById} scale={scale} now={now} onSelect={select} onReview={review} />
       <div className={`toast${toast ? " show" : ""}`} role="status">{toast}</div>
+      {lensOpen && (
+        <LensPicker lang={lang} tax={themedTax} index={index} nodes={nodes} focus={focus}
+          onApply={(f) => { setFocus(f); setLensOpen(false); }}
+          onSkip={() => { setFocus(focus); setLensOpen(false); }}
+          onCustom={(f) => { setFocus(f); setLensOpen(false); setFocusMenuOpen(true); }} />
+      )}
     </div>
   );
 }

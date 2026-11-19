@@ -22,6 +22,10 @@ A node is either a **breakthrough** (a paper, release or event that changed what
 
 Schema reference: [data/schema/node.schema.json](data/schema/node.schema.json).
 
+## Focus lenses
+
+Lenses (`lenses` in `data/taxonomy.json`) are the presets offered on first visit. Each one has a bilingual name and one-line description, plus top-level `branches` and/or `tags`. Keep the list short (about eight), and propose a new lens only when it answers a question readers actually ask.
+
 ## Development
 
 ```bash

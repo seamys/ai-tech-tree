@@ -60,6 +60,15 @@ Branch and zone colours live in `data/taxonomy.json` and are shared by all theme
 
 Adding a theme takes three steps: add an entry to `THEMES` and `THEME_ORDER`, add a `[data-theme]` block to `styles.css`, and add the id to the regex in `index.html`.
 
+## Focus
+
+A focus is a set of top-level branches plus cross-cutting tags (`src/lib/focus.ts`). A node is in focus if its branch, or its parent branch, is selected, or if it carries a selected tag. Empty means everything.
+
+- **Dim** keeps the layout and adds an `unfocus` class to nodes, twigs, limbs and lane labels. Their labels stop claiming space in the declutter pass, so labels in focus get more room.
+- **Hide** filters the nodes before `computeLayout`, which skips zones and layers left empty. The selected node is always kept, so search still works, and the view re-fits after the layout changes.
+- **Lenses** are curated presets in `data/taxonomy.json` (`lenses`), checked by `validate.mjs`. A lens lists top-level branches and/or tags. The first visit, with nothing stored and no `?focus=` parameter, opens the lens picker. After that the header button opens a chip popover.
+- **Persistence.** The focus is saved in `localStorage` (`gt-focus`) and mirrored into the URL with `history.replaceState`, as `?focus=<lens id>` or `?focus=<branch>,tag:<tag>` plus `&fmode=hide`. A URL parameter overrides the stored value.
+
 ## Globe
 
 The detail panel opens with a small orthographic globe (`src/components/Globe.tsx`) that turns to the node's `geo` points. It is drawn with `d3-geo` on a single canvas: sphere, graticule, Natural Earth 110m land (`data/geo/land-110m.json`, coordinates rounded to 0.1°, about 20 KB gzipped), then dashed great-circle arcs from each `origin` to each `target`, then markers and labels on the visible hemisphere only.

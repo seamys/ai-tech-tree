@@ -647,5 +647,138 @@
       "zh": "门槛大降",
       "en": "Barrier lowered"
     }
-  }
+  },
+  "lenses": [
+    {
+      "id": "all",
+      "name": {
+        "zh": "全景",
+        "en": "Everything"
+      },
+      "description": {
+        "zh": "整棵树，从矿产到应用",
+        "en": "The whole tree, minerals to applications"
+      },
+      "branches": []
+    },
+    {
+      "id": "frontier-llm",
+      "name": {
+        "zh": "大模型竞赛",
+        "en": "The LLM race"
+      },
+      "description": {
+        "zh": "语言模型、开源权重、推理、对齐与评测",
+        "en": "Language models, open weights, reasoning, alignment and evals"
+      },
+      "branches": [
+        "llm",
+        "reason",
+        "align",
+        "eval",
+        "arch"
+      ]
+    },
+    {
+      "id": "creative",
+      "name": {
+        "zh": "创作与多模态",
+        "en": "Creative & multimodal"
+      },
+      "description": {
+        "zh": "图像、视频、音频与世界模型",
+        "en": "Image, video, audio and world models"
+      },
+      "branches": [
+        "found",
+        "image",
+        "video",
+        "audio",
+        "mm"
+      ]
+    },
+    {
+      "id": "apps",
+      "name": {
+        "zh": "应用与 Agent",
+        "en": "Apps & agents"
+      },
+      "description": {
+        "zh": "产品、开发者工具、Agent 与推理服务",
+        "en": "Products, developer tools, agents and serving"
+      },
+      "branches": [
+        "consumer",
+        "devent",
+        "science",
+        "embodied",
+        "agent",
+        "serve"
+      ]
+    },
+    {
+      "id": "compute",
+      "name": {
+        "zh": "算力与芯片",
+        "en": "Compute & chips"
+      },
+      "description": {
+        "zh": "GPU / ASIC、制造封装、软件栈与集群",
+        "en": "GPUs and ASICs, fabs and packaging, software and clusters"
+      },
+      "branches": [
+        "chip",
+        "fab",
+        "sw",
+        "infra"
+      ]
+    },
+    {
+      "id": "energy",
+      "name": {
+        "zh": "能源与资源",
+        "en": "Energy & resources"
+      },
+      "description": {
+        "zh": "电力、矿产与吉瓦级园区",
+        "en": "Power, minerals and gigawatt campuses"
+      },
+      "branches": [
+        "energy",
+        "mineral",
+        "infra"
+      ]
+    },
+    {
+      "id": "policy",
+      "name": {
+        "zh": "政策与地缘",
+        "en": "Policy & geopolitics"
+      },
+      "description": {
+        "zh": "出口管制、诉讼与监管",
+        "en": "Export controls, lawsuits and regulation"
+      },
+      "branches": [],
+      "tags": [
+        "policy"
+      ]
+    },
+    {
+      "id": "data",
+      "name": {
+        "zh": "数据与规律",
+        "en": "Data & scaling"
+      },
+      "description": {
+        "zh": "语料、Scaling Laws 与数据墙",
+        "en": "Corpora, scaling laws and the data wall"
+      },
+      "branches": [
+        "data",
+        "arch",
+        "llm"
+      ]
+    }
+  ]
 }

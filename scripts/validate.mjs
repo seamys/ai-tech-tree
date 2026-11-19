@@ -45,6 +45,19 @@ for (const b of tax.branches) {
   } else if (!b.color) err(`branch ${b.id}: top-level branches need a color`);
 }
 for (const t of tax.tags) if (!isBilingual(t.name)) err(`tag ${t.id}: name must be {zh,en}`);
+// Lenses are curated focus presets: top-level branches and/or tags. Empty both = everything.
+const lensIds = new Set();
+for (const l of tax.lenses ?? []) {
+  if (lensIds.has(l.id)) err(`lens ${l.id}: duplicate id`);
+  lensIds.add(l.id);
+  if (!isBilingual(l.name) || !isBilingual(l.description)) err(`lens ${l.id}: name and description must be {zh,en}`);
+  for (const b of l.branches ?? []) {
+    const br = tax.branches.find((x) => x.id === b);
+    if (!br) err(`lens ${l.id}: unknown branch "${b}"`);
+    else if (br.parent) err(`lens ${l.id}: "${b}" is a sub-branch; list its parent "${br.parent}"`);
+  }
+  for (const t of l.tags ?? []) if (!tagIds.has(t)) err(`lens ${l.id}: unknown tag "${t}"`);
+}
 for (const [id, c] of Object.entries(tax.criteria)) if (!isBilingual(c)) err(`criterion ${id}: must be {zh,en}`);
 
 // --- nodes ------------------------------------------------------------------

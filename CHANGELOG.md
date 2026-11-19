@@ -5,6 +5,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-20
+
+### Added
+- **Focus areas.** A lens picker on first visit offers eight curated starting points: everything, the LLM race, creative and multimodal, apps and agents, compute and chips, energy and resources, policy and geopolitics, and data and scaling. Each card has a mini stack map and a node count. After that, **Focus** in the header opens a popover of branch and tag chips with quick lenses.
+- Other areas can be **dimmed** (the tree keeps its shape) or **hidden** (the tree compacts and empty zones and layers drop out). Selecting a hidden node through search still shows it.
+- The focus is remembered per device and reflected in the URL (`?focus=energy`, `?focus=llm,reason,tag:policy&fmode=hide`), so a focused view can be shared.
+- `lenses` in `data/taxonomy.json`, validated by `scripts/validate.mjs`.
+
+### Changed
+- Zone headers show "in focus / total" node counts when a focus is active.
+- On phones, the search box expands across the header while typing.
+
+### Fixed
+- Sticky captions and culled nodes could stay hidden after a layout change, because React reuses their elements.
+
 ## [1.2.1] - 2026-11-20
 
 ### Fixed
@@ -51,7 +66,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Performance
 - Pan and zoom run outside React: one transform and one CSS variable per frame, pooled time ticks, viewport culling. Main-thread time per pan frame dropped from 3.3 ms to 1.7 ms compared with the previous single-file page.
 
-[Unreleased]: https://github.com/seamys/ai-tech-tree/compare/v1.2.1...HEAD
+[Unreleased]: https://github.com/seamys/ai-tech-tree/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/seamys/ai-tech-tree/compare/v1.2.1...v1.3.0
 [1.2.1]: https://github.com/seamys/ai-tech-tree/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/seamys/ai-tech-tree/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/seamys/ai-tech-tree/compare/v1.0.0...v1.1.0

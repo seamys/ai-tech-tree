@@ -115,7 +115,11 @@ export function computeLayout(args: {
     y = laneY + half + 14 * s;
   };
 
+  // Zones and layers with no nodes at all are skipped (this happens when the focus hides branches).
+  const layerOf = (n: TechNode) => index.branch.get(n.branch)!.layer;
+  const usedLayers = new Set(nodes.map(layerOf));
   for (const zone of tax.zones) {
+    if (!tax.layers.some((l) => l.zone === zone.id && usedLayers.has(l.id))) continue;
     if (zone.ground && groundY === null) { groundY = y + 8 * s; y += 64 * s; }
     const y0 = y;
     zoneRows.push({ zone, y: y + 22 * s });
@@ -125,7 +129,7 @@ export function computeLayout(args: {
     if (lod === 0) {
       placeLane({ key: `zone-${zone.id}`, label: "", color: zone.color, ground: zone.ground, isSub: false, summary: true }, members);
     } else {
-      for (const layer of tax.layers.filter((l) => l.zone === zone.id)) {
+      for (const layer of tax.layers.filter((l) => l.zone === zone.id && usedLayers.has(l.id))) {
         layerRows.push({ layer, zone, y: y + 14 * s });
         y += 26 * s;
         for (const b of tax.branches.filter((x) => x.layer === layer.id && !x.parent)) {

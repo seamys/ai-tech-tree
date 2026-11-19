@@ -15,12 +15,13 @@ interface Props {
   selectedId: string | null;
   query: string;
   activeTag: string | null;
+  inFocus(n: TechNode): boolean;
 }
 
 const matches = (n: TechNode, q: string) =>
   (n.title.zh + n.title.en + n.summary.zh + n.summary.en).toLowerCase().includes(q);
 
-function TreeLayerImpl({ layout, scale, index, lang, lod, selectedId, query, activeTag }: Props) {
+function TreeLayerImpl({ layout, scale, index, lang, lod, selectedId, query, activeTag, inFocus }: Props) {
   const { lanes, zoneSpans, groundY, height: H, width: W } = layout;
   const xNow = scale.xNow;
   const q = query.trim().toLowerCase();
@@ -57,16 +58,17 @@ function TreeLayerImpl({ layout, scale, index, lang, lod, selectedId, query, act
           const past = lane.nodes.filter((p) => ageOf(p.node.date, scale.nowM) >= 0);
           const xe = past.length ? past[past.length - 1].x : TRUNK_X + 110;
           const xEnd = Math.max(xNow, ...lane.nodes.map((p) => p.x));
+          const off = lane.nodes.some((p) => inFocus(p.node)) ? "" : " unfocus";
           const start = lane.isSub
             ? `M${Math.max(TRUNK_X + 110, lane.nodes[0].x - 60)},${y}`
             : `M${TRUNK_X},${y + (lane.ground ? -34 : 34) * s} C${TRUNK_X + 60},${y} ${TRUNK_X + 60},${y} ${TRUNK_X + 110},${y}`;
           return (
             <g key={lane.key}>
-              <path d={`${start} L${xe},${y}`} className={`limb${lane.isSub ? " sub" : ""}`} stroke={lane.color} />
+              <path d={`${start} L${xe},${y}`} className={`limb${lane.isSub ? " sub" : ""}${off}`} stroke={lane.color} />
               {/* Dashed tail to "now": the longer it is, the longer this branch has gone without news. */}
-              <path d={`M${xe},${y} L${xEnd},${y}`} className="limb-stale" stroke={lane.color} />
+              <path d={`M${xe},${y} L${xEnd},${y}`} className={`limb-stale${off}`} stroke={lane.color} />
               {lane.nodes.map((p) => (
-                <line key={p.node.id} x1={p.x} x2={p.x} y1={y} y2={p.y} className="twig"
+                <line key={p.node.id} x1={p.x} x2={p.x} y1={y} y2={p.y} className={inFocus(p.node) ? "twig" : "twig unfocus"}
                   stroke={lane.summary ? index.colorOfBranch(p.node.branch) : lane.color} />
               ))}
             </g>
@@ -91,6 +93,7 @@ function TreeLayerImpl({ layout, scale, index, lang, lod, selectedId, query, act
             n.id === selectedId ? "sel" : "",
             hit ? "hit" : q ? "dim" : "",
             activeTag && !(n.tags ?? []).includes(activeTag) ? "untag" : "",
+            inFocus(n) ? "" : "unfocus",
           ].filter(Boolean).join(" ");
           return (
             <g key={n.id} className={cls} transform={`translate(${p.x},${p.y})`} data-id={n.id} data-t={(scale.nowM - age).toFixed(3)} style={{ color }}>

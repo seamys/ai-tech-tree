@@ -16,6 +16,8 @@ export interface CanvasHandle {
   focusZone(id: string): void;
   /** Keep the current view steady across the next layout change (language, time mode, clock tick). */
   holdAnchor(): void;
+  /** Fit the view once the next layout is ready (e.g. after the focus hides branches). */
+  fitAfterLayout(): void;
 }
 
 interface Props {
@@ -31,6 +33,8 @@ interface Props {
   onSelect(id: string): void;
   query: string;
   activeTag: string | null;
+  /** Nodes outside the reader's focus are dimmed (in "hide" mode they are not in the layout at all). */
+  inFocus(n: TechNode): boolean;
   showLinks: boolean;
   cursorM: number | null;
   now: Date;
@@ -105,7 +109,7 @@ function measure(el: SVGTextElement | null): number {
 function rank(c: DOMTokenList): number {
   if (c.contains("sel")) return 0;
   if (c.contains("hit")) return 1;
-  if (c.contains("dim") || c.contains("untag") || c.contains("notyet")) return 9;
+  if (c.contains("dim") || c.contains("untag") || c.contains("notyet") || c.contains("unfocus")) return 9;
   if (c.contains("fresh")) return 2;
   if (c.contains("l1")) return 3;
   if (c.contains("recent") || c.contains("future")) return 4;
@@ -135,7 +139,8 @@ function declutter(items: NodeEl[], k: number, compact: boolean) {
     return false;
   };
   for (const { n, r } of order) {
-    let show = !(compact && n.el.classList.contains("minor")), left = false;
+    const c = n.el.classList;
+    let show = !(compact && c.contains("minor")) && !(c.contains("unfocus") && r !== 0), left = false;
     if (show) {
       const withDate = !compact, sx = n.x * k, sy = n.y * k;
       const w = Math.max(n.w, withDate ? n.dw : 0) + 4;
@@ -155,7 +160,7 @@ function declutter(items: NodeEl[], k: number, compact: boolean) {
 
 export const TreeCanvas = forwardRef<CanvasHandle, Props>(function TreeCanvas(props, ref) {
   const { layout, scale, index, nodesById, lang, lod, onLodChange, selectedId, focusRequest, onSelect,
-    query, activeTag, showLinks, cursorM, now, panelOpen, onZoneClick } = props;
+    query, activeTag, inFocus, showLinks, cursorM, now, panelOpen, onZoneClick } = props;
 
   const hostRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -296,6 +301,7 @@ export const TreeCanvas = forwardRef<CanvasHandle, Props>(function TreeCanvas(pr
     },
     zoomBy(f) { zoomAt(f, viewWidth() / 2, (hostRef.current?.clientHeight ?? innerHeight) / 2); },
     toRoots() { const g = live.current.layout.groundY; if (g !== null) { view.current.y = 160 - g * view.current.k; apply(); } },
+    fitAfterLayout() { pending.current = { ...pending.current, fit: true }; },
     toTop() { view.current.y = 150 - (TOP - 62) * view.current.k; apply(); },
     focusZone(id) {
       if (live.current.lod === 0) { view.current.k = 0.75; pending.current = { ...pending.current, zone: id, lod: 1 }; onLodChange(1); return; }
@@ -321,10 +327,11 @@ export const TreeCanvas = forwardRef<CanvasHandle, Props>(function TreeCanvas(pr
       const p = layout.positions.get(el.dataset.id!)!;
       const [title, date] = el.querySelectorAll("text");
       el.classList.remove("nolab", "lft");
+      el.style.display = ""; // React may reuse an element we culled under the previous layout
       return { el, x: p.x, y: p.y, culled: false, above: p.above, t: Number(el.dataset.t), w: measure(title), dw: measure(date), nolab: false, left: false };
     });
     declutterKey.current = "";
-    labelEls.current = [...labelsRef.current!.querySelectorAll<HTMLElement>("[data-y]")].map((el) => ({ el, y: Number(el.dataset.y), hidden: false }))
+    labelEls.current = [...labelsRef.current!.querySelectorAll<HTMLElement>("[data-y]")].map((el) => { el.style.visibility = ""; return { el, y: Number(el.dataset.y), hidden: false }; })
       .sort((a, b) => a.y - b.y);
 
     const v = view.current, P = pending.current;
@@ -358,7 +365,7 @@ export const TreeCanvas = forwardRef<CanvasHandle, Props>(function TreeCanvas(pr
   useEffect(() => { apply(); }, [now, panelOpen, lang, apply]);
 
   // Selection, search and tag filters change label priorities.
-  useEffect(() => { declutterKey.current = ""; apply(); }, [selectedId, query, activeTag, apply]);
+  useEffect(() => { declutterKey.current = ""; apply(); }, [selectedId, query, activeTag, inFocus, apply]);
 
   // A theme or web-font change alters label widths: re-measure and re-place.
   useEffect(() => {
@@ -444,7 +451,7 @@ export const TreeCanvas = forwardRef<CanvasHandle, Props>(function TreeCanvas(pr
       <svg ref={svgRef} className="tree" role="img" aria-label={t(lang, "docTitle")}>
         <g ref={worldRef}>
           <LinksLayer layout={layout} nodesById={nodesById} index={index} selectedId={selectedId} showLinks={showLinks} />
-          <TreeLayer layout={layout} scale={scale} index={index} lang={lang} lod={lod} selectedId={selectedId} query={query} activeTag={activeTag} />
+          <TreeLayer layout={layout} scale={scale} index={index} lang={lang} lod={lod} selectedId={selectedId} query={query} activeTag={activeTag} inFocus={inFocus} />
         </g>
       </svg>
       <div className="axis" aria-hidden>
@@ -460,7 +467,9 @@ export const TreeCanvas = forwardRef<CanvasHandle, Props>(function TreeCanvas(pr
           </>
         )}
         {layout.zoneRows.map(({ zone, y }) => {
-          const count = [...nodesById.values()].filter((n) => index.zoneOfNode(n).id === zone.id).length;
+          const all = [...nodesById.values()].filter((n) => index.zoneOfNode(n).id === zone.id);
+          const shown = all.filter(inFocus).length;
+          const count = shown === all.length ? all.length : `${shown}/${all.length}`;
           return (
             <button key={zone.id} className="zonehead" data-y={y - 14} style={{ borderColor: zone.color, color: zone.color }}
               onClick={() => onZoneClick(zone.id)}>
@@ -472,7 +481,7 @@ export const TreeCanvas = forwardRef<CanvasHandle, Props>(function TreeCanvas(pr
           <div key={layer.id} className="layerlabel" data-y={y - 8} style={{ color: zone.color }}>{layer.id}  {layer.name[lang]}</div>
         ))}
         {layout.lanes.filter((l) => !l.summary).map((l) => (
-          <div key={l.key} className={`lanelabel${l.isSub ? " sub" : ""}`} data-y={l.y - 22} style={{ color: l.color, borderColor: `${l.color}66` }}>
+          <div key={l.key} className={`lanelabel${l.isSub ? " sub" : ""}${l.nodes.some((p) => inFocus(p.node)) ? "" : " unfocus"}`} data-y={l.y - 22} style={{ color: l.color, borderColor: `${l.color}66` }}>
             {l.isSub ? "└ " : ""}{l.label}
           </div>
         ))}
