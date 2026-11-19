@@ -3,6 +3,7 @@ import type { Lang, Lod, TechNode, Taxonomy, TimeMode } from "./types";
 import { computeLayout, indexTaxonomy } from "./lib/layout";
 import { ageOf, dateToM, isRecent, makeScale } from "./lib/time";
 import { initialLang, persistLang, t } from "./i18n";
+import { initialTheme, paint, persistTheme, THEMES, type ThemeId } from "./themes";
 import { TreeCanvas, type CanvasHandle } from "./components/TreeCanvas";
 import { SidePanel, type PanelState } from "./components/Panels";
 import { Header, Legend, Timebar, ZoomControls } from "./components/Chrome";
@@ -10,6 +11,7 @@ import { Header, Legend, Timebar, ZoomControls } from "./components/Chrome";
 export function App({ taxonomy, initialNodes }: { taxonomy: Taxonomy; initialNodes: TechNode[] }) {
   const [nodes, setNodes] = useState(initialNodes);
   const [lang, setLang] = useState<Lang>(initialLang);
+  const [theme, setTheme] = useState<ThemeId>(initialTheme);
   const [timeMode, setTimeMode] = useState<TimeMode>("focus");
   const [now, setNow] = useState(() => new Date());
   const [lod, setLod] = useState<Lod>(0);
@@ -23,11 +25,17 @@ export function App({ taxonomy, initialNodes }: { taxonomy: Taxonomy; initialNod
   const [hintGone, setHintGone] = useState(false);
   const canvas = useRef<CanvasHandle>(null);
 
-  const index = useMemo(() => indexTaxonomy(taxonomy), [taxonomy]);
+  // Branch and zone colours come from data; each theme remaps them into its own palette.
+  const themedTax = useMemo<Taxonomy>(() => ({
+    ...taxonomy,
+    zones: taxonomy.zones.map((z) => ({ ...z, color: paint(z.color, theme) })),
+    branches: taxonomy.branches.map((b) => (b.color ? { ...b, color: paint(b.color, theme) } : b)),
+  }), [taxonomy, theme]);
+  const index = useMemo(() => indexTaxonomy(themedTax), [themedTax]);
   const nodesById = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
   const nowMinute = Math.floor(dateToM(now) * 30.5 * 1440); // changes once per minute
   const scale = useMemo(() => makeScale(timeMode, dateToM(now)), [timeMode, nowMinute]); // eslint-disable-line react-hooks/exhaustive-deps
-  const layout = useMemo(() => computeLayout({ nodes, tax: taxonomy, index, lod, lang, scale }), [nodes, taxonomy, index, lod, lang, scale]);
+  const layout = useMemo(() => computeLayout({ nodes, tax: themedTax, index, lod, lang, scale }), [nodes, themedTax, index, lod, lang, scale]);
 
   // Real clock: the "now" line moves every minute; the view stays anchored.
   useEffect(() => {
@@ -37,6 +45,11 @@ export function App({ taxonomy, initialNodes }: { taxonomy: Taxonomy; initialNod
     }, 30_000);
     return () => clearInterval(id);
   }, [now]);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", THEMES[theme].swatch[0]);
+  }, [theme]);
 
   useEffect(() => {
     document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
@@ -110,9 +123,10 @@ export function App({ taxonomy, initialNodes }: { taxonomy: Taxonomy; initialNod
   return (
     <div className="app" onPointerDown={() => setHintGone(true)}>
       <Header lang={lang} query={query} timeMode={timeMode} showLinks={showLinks} candidates={candidates}
+        theme={theme} onTheme={(id) => { setTheme(id); persistTheme(id); }}
         onQuery={setQuery} onSearchEnter={searchEnter} onLang={switchLang} onTimeMode={toggleTimeMode}
         onLinks={() => setShowLinks((x) => !x)} onFeed={() => setPanel({ type: "feed" })} onQueue={() => setPanel({ type: "queue" })} />
-      <Legend lang={lang} tax={taxonomy} activeTag={activeTag} onZone={(id) => canvas.current?.focusZone(id)} onTag={toggleTag} />
+      <Legend lang={lang} tax={themedTax} activeTag={activeTag} onZone={(id) => canvas.current?.focusZone(id)} onTag={toggleTag} />
       <TreeCanvas ref={canvas} layout={layout} scale={scale} index={index} nodesById={nodesById} lang={lang} lod={lod}
         onLodChange={setLod} selectedId={panel?.type === "node" ? panel.id : null} focusRequest={focusRequest} onSelect={select}
         query={query} activeTag={activeTag} showLinks={showLinks} cursorM={cursorM} now={now} panelOpen={panel !== null}
@@ -121,7 +135,7 @@ export function App({ taxonomy, initialNodes }: { taxonomy: Taxonomy; initialNod
       <ZoomControls lang={lang} lod={lod} onZoom={(f) => canvas.current?.zoomBy(f)} onFit={() => canvas.current?.fit()}
         onRoots={() => canvas.current?.toRoots()} onTop={() => canvas.current?.toTop()} />
       <Timebar lang={lang} nowM={scale.nowM} cursorM={cursorM} onCursor={setCursorM} />
-      <SidePanel panel={panel} onClose={() => setPanel(null)} lang={lang} tax={taxonomy} index={index} nodes={nodes}
+      <SidePanel panel={panel} onClose={() => setPanel(null)} lang={lang} tax={themedTax} index={index} nodes={nodes}
         nodesById={nodesById} scale={scale} now={now} onSelect={select} onReview={review} />
       <div className={`toast${toast ? " show" : ""}`} role="status">{toast}</div>
     </div>

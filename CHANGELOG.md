@@ -5,6 +5,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-20
+
+### Added
+- Theme picker in the header with four themes: **Observatory** (default; refined dark, ring nodes), **Atlas** (light, printed paper, serif), **Blueprint** (engineering drawing) and **Mission Control** (black telemetry, red/amber alerts only). The choice is saved per device; `?theme=<id>` overrides it.
+- Per-theme palette: branch colours from `data/taxonomy.json` are remapped in OKLCH to each theme's lightness and saturation, so contrast stays consistent.
+
+### Changed
+- All colours and fonts now come from CSS custom properties; the original look remains available internally as `classic`.
+- The theme is applied before first paint (no flash of the wrong colours).
+- Sticky labels hide before they reach the bottom controls.
+
 ## [1.0.0] - 2026-11-19
 
 ### Added
@@ -21,5 +32,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Performance
 - Pan and zoom run outside React: one transform and one CSS variable per frame, pooled time ticks, viewport culling. Main-thread time per pan frame dropped from 3.3 ms to 1.7 ms compared with the previous single-file page.
 
-[Unreleased]: https://github.com/seamys/ai-tech-tree/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/seamys/ai-tech-tree/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/seamys/ai-tech-tree/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/seamys/ai-tech-tree/releases/tag/v1.0.0

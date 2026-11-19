@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Generative AI tech roadmap: from minerals and energy to applications, on a live timeline. 生成式 AI 技术路线树。">
-  <meta name="theme-color" content="#0b0f14">
+  <meta name="theme-color" content="#08090d">
   <link rel="canonical" href="https://seamys.github.io/ai-tech-tree/">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="ai-tech-tree">
@@ -16,6 +16,13 @@
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="data-version" content="%DATA_VERSION%">
+  <script>
+    // Apply the saved theme before first paint (default: observatory).
+    try {
+      var t = new URLSearchParams(location.search).get("theme") || localStorage.getItem("gt-theme");
+      document.documentElement.dataset.theme = /^(observatory|atlas|blueprint|mission|classic)$/.test(t) ? t : "observatory";
+    } catch (e) { document.documentElement.dataset.theme = "observatory"; }
+  </script>
   <title>生成式 AI 技术路线树 · Generative AI Tech Roadmap</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 30V12M16 18 8 10M16 14l8-8M16 22l7-5' stroke='%234fd1c5' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
   <!-- Data and code download in parallel. -->

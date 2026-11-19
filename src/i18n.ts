@@ -4,7 +4,7 @@ import type { Bilingual, Lang } from "./types";
 const zh = {
   title1: "生成式 AI ",
   title2: "技术路线树",
-  version: "v1.0 · 语义缩放 + 实时时间轴",
+  version: "v1.1 · 语义缩放 + 实时时间轴",
   docTitle: "生成式 AI 技术路线树",
   search: "搜索节点（中英文皆可）",
   timeLabel: "时间：",
@@ -17,6 +17,7 @@ const zh = {
   feedShort: "动态",
   review: "待审核",
   langSwitch: "EN",
+  theme: "主题",
   langSwitchTitle: "Switch to English",
   hint: "滚轮上下移动 · Ctrl+滚轮或双指捏合缩放，越放大越细 · 点节点看详情",
   fit: "适配",
@@ -82,7 +83,7 @@ type Strings = typeof zh;
 const en: Strings = {
   title1: "Generative AI ",
   title2: "Tech Roadmap",
-  version: "v1.0 · semantic zoom + live timeline",
+  version: "v1.1 · semantic zoom + live timeline",
   docTitle: "Generative AI Tech Roadmap",
   search: "Search nodes (EN or 中文)",
   timeLabel: "Time: ",
@@ -95,6 +96,7 @@ const en: Strings = {
   feedShort: "New",
   review: "Review",
   langSwitch: "中文",
+  theme: "Theme",
   langSwitchTitle: "切换到中文",
   hint: "Scroll to pan · Ctrl+scroll or pinch to zoom; zoom in for more detail · click a node for details",
   fit: "Fit",

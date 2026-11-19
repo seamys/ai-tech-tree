@@ -1,12 +1,13 @@
 // Header, legend, zoom controls and the playback bar.
 import { useEffect, useRef, useState } from "react";
+import { THEMES, THEME_ORDER, type ThemeId } from "../themes";
 import type { Lang, Lod, TimeMode, Taxonomy } from "../types";
 import { formatYM } from "../lib/time";
 import { t } from "../i18n";
 
 export function Header(p: {
-  lang: Lang; query: string; timeMode: TimeMode; showLinks: boolean; candidates: number;
-  onQuery(q: string): void; onSearchEnter(): void; onLang(): void; onTimeMode(): void; onLinks(): void; onFeed(): void; onQueue(): void;
+  lang: Lang; query: string; timeMode: TimeMode; showLinks: boolean; candidates: number; theme: ThemeId;
+  onTheme(id: ThemeId): void; onQuery(q: string): void; onSearchEnter(): void; onLang(): void; onTimeMode(): void; onLinks(): void; onFeed(): void; onQueue(): void;
 }) {
   const { lang } = p;
   return (
@@ -15,6 +16,7 @@ export function Header(p: {
       <input className="search" type="search" value={p.query} placeholder={t(lang, "search")}
         onChange={(e) => p.onQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && p.onSearchEnter()} />
       <div className="spacer" />
+      <ThemePicker lang={lang} theme={p.theme} onTheme={p.onTheme} />
       <button className="btn lang" onClick={p.onLang} title={t(lang, "langSwitchTitle")}>{t(lang, "langSwitch")}</button>
       <button className="btn hide-narrow" onClick={p.onTimeMode}>
         {t(lang, "timeLabel")}{p.timeMode === "focus" ? t(lang, "timeFocus") : t(lang, "timeLinear")}
@@ -23,6 +25,43 @@ export function Header(p: {
       <button className="btn" onClick={p.onFeed}><span className="wide-only">{t(lang, "feed")}</span><span className="narrow-only">{t(lang, "feedShort")}</span></button>
       <button className="btn warn" onClick={p.onQueue}>{t(lang, "review")} <b>{p.candidates}</b></button>
     </header>
+  );
+}
+
+/** Theme menu: a swatch button that opens a small list of themes. */
+export function ThemePicker({ lang, theme, onTheme }: { lang: Lang; theme: ThemeId; onTheme(id: ThemeId): void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: PointerEvent | KeyboardEvent) => {
+      if (e instanceof KeyboardEvent ? e.key === "Escape" : !ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    addEventListener("pointerdown", close);
+    addEventListener("keydown", close);
+    return () => { removeEventListener("pointerdown", close); removeEventListener("keydown", close); };
+  }, [open]);
+  const Swatch = ({ id }: { id: ThemeId }) => {
+    const [bg, fg, accent] = THEMES[id].swatch;
+    return <span className="swatch" style={{ background: bg, borderColor: fg }}><i style={{ background: accent }} /></span>;
+  };
+  return (
+    <div className="themepicker" ref={ref}>
+      <button className="btn" aria-haspopup="menu" aria-expanded={open} title={t(lang, "theme")} onClick={() => setOpen((x) => !x)}>
+        <Swatch id={theme} /><span className="wide-only">{THEMES[theme].name[lang]}</span>
+      </button>
+      {open && (
+        <div className="thememenu" role="menu">
+          {THEME_ORDER.map((id) => (
+            <button key={id} role="menuitemradio" aria-checked={id === theme} className={id === theme ? "on" : ""}
+              onClick={() => { onTheme(id); setOpen(false); }}>
+              <Swatch id={id} />
+              <span><b>{THEMES[id].name[lang]}</b><small>{THEMES[id].description[lang]}</small></span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

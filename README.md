@@ -41,6 +41,7 @@ This project puts everything on one tree:
 | **Live timeline** | Log-scaled "recent focus" axis (or linear); a real-time "now" line; nodes from the last 30 days pulse; scheduled future events sit right of "now"; replay the tree's growth since 2010. |
 | **Breakthroughs and constraints** | ● papers, releases, events · ◆ export controls, capacity shortages, power limits, lawsuits |
 | **Built for review** | Every node carries sources and "why it counts" criteria; agent-proposed nodes wait in a review queue. |
+| **Four themes** | Observatory (default), Atlas, Blueprint and Mission Control. Pick one from the header; it is remembered per device. |
 | **Bilingual** | 中文 / English for interface and content. Toggle top-right, or open `#zh` / `#en`. |
 
 <table>
@@ -84,6 +85,8 @@ src/                      app (MIT)
 ├── lib/time.ts           linear and "recent focus" time scales
 ├── lib/layout.ts         pure layout: data + zoom level → positions
 ├── components/           canvas, panels, header, controls
+├── themes.ts             theme registry + OKLCH palette remapping
+├── styles.css            design tokens and [data-theme] overrides
 └── i18n.ts               interface strings
 scripts/
 ├── build.mjs             esbuild bundle + static output

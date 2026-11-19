@@ -51,6 +51,14 @@ Measured on the same machine with 4× CPU throttling (200 pan frames, Chromium p
 | previous single-file page | 1.00 ms | 0.88 ms | 3.30 ms |
 | this build | 0.19 ms | 0.43 ms | 1.71 ms |
 
+## Themes
+
+Every colour, font and stroke weight in `src/styles.css` is a CSS custom property defined on `:root`. A theme is a `[data-theme="<id>"]` block that overrides those tokens, plus a few rules for things tokens cannot express, such as ring nodes or uppercase labels. The attribute sits on `<html>` and is set by a tiny inline script in `index.html` before the bundle loads, so the first paint already uses the right theme.
+
+Branch and zone colours live in `data/taxonomy.json` and are shared by all themes. `src/themes.ts` maps each one into the active theme's palette in OKLCH: it keeps the hue, sets a fixed lightness and caps chroma. A light theme therefore gets deep print-like inks, and a monochrome theme gets near-whites, from the same data. The themed taxonomy feeds layout and rendering, so components never branch on the theme.
+
+Adding a theme takes three steps: add an entry to `THEMES` and `THEME_ORDER`, add a `[data-theme]` block to `styles.css`, and add the id to the regex in `index.html`.
+
 ## Time axis
 
 Time is fractional months since January 2006. `makeScale("focus")` maps it with a log curve anchored at the current moment, `x = xNow − C·ln(1 + (now − t)/τ)`: the last year gets about as much width as the decade before it. Future events use a linear extension to the right of the "now" line. The clock updates every minute; the view stays anchored on the same moment.

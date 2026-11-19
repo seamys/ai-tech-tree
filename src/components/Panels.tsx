@@ -35,15 +35,15 @@ function NodeDetail({ node: n, ...c }: Common & { node: TechNode }) {
   const { lang, tax, index, nodes, nodesById, scale, onSelect, onReview } = c;
   const color = index.colorOfBranch(n.branch);
   const children = nodes.filter((x) => x.parents.includes(n.id));
-  const kind = n.kind === "constraint" ? ["kindConstraint", "#f6ad55"] as const
-    : n.kind === "event" ? ["kindEvent", "#a0aec0"] as const
-    : n.kind === "upcoming" ? ["kindUpcoming", "#ff9aa8"] as const : null;
+  const kind = n.kind === "constraint" ? ["kindConstraint", "var(--warn)"] as const
+    : n.kind === "event" ? ["kindEvent", "var(--text-2)"] as const
+    : n.kind === "upcoming" ? ["kindUpcoming", "var(--now)"] as const : null;
   return (
     <>
       <div className="meta">
         <span className="tag" style={{ color, borderColor: `${color}55` }}>{branchLabel(n.branch, index, lang)}</span>
         <span>{n.date} · {relativeTime(ageOf(n.date, scale.nowM), lang)}</span>
-        {kind && <span className="tag" style={{ color: kind[1], borderColor: `${kind[1]}55` }}>{t(lang, kind[0])}</span>}
+        {kind && <span className="tag" style={{ color: kind[1], borderColor: "currentColor" }}>{t(lang, kind[0])}</span>}
         <span className="tag">{t(lang, "detailLevel")} {n.level}</span>
         {n.status === "candidate"
           ? <span className="tag cand">{t(lang, "candidate")} {n.confidence}</span>

@@ -46,7 +46,7 @@ function TreeLayerImpl({ layout, scale, index, lang, lod, selectedId, query, act
         {lanes.length > 0 && (
           <>
             <line x1={TRUNK_X} x2={TRUNK_X} y1={TOP - 40} y2={lanes[lanes.length - 1].y} className="trunk" />
-            <circle cx={TRUNK_X} cy={TOP - 46} r={9} fill="#4fd1c5" />
+            <circle cx={TRUNK_X} cy={TOP - 46} r={9} className="stack-dot" />
             <text x={TRUNK_X + 16} y={TOP - 41} className="stack-root">{t(lang, "stackRoot")}</text>
           </>
         )}
@@ -61,7 +61,7 @@ function TreeLayerImpl({ layout, scale, index, lang, lod, selectedId, query, act
             : `M${TRUNK_X},${y + (lane.ground ? -34 : 34) * s} C${TRUNK_X + 60},${y} ${TRUNK_X + 60},${y} ${TRUNK_X + 110},${y}`;
           return (
             <g key={lane.key}>
-              <path d={`${start} L${xe},${y}`} className="limb" stroke={lane.color} strokeWidth={lane.isSub ? 2.5 : 4} />
+              <path d={`${start} L${xe},${y}`} className={`limb${lane.isSub ? " sub" : ""}`} stroke={lane.color} />
               {/* Dashed tail to "now": the longer it is, the longer this branch has gone without news. */}
               <path d={`M${xe},${y} L${xEnd},${y}`} className="limb-stale" stroke={lane.color} />
               {lane.nodes.map((p) => (
@@ -82,7 +82,7 @@ function TreeLayerImpl({ layout, scale, index, lang, lod, selectedId, query, act
           const r0 = n.level === 1 ? 7 : n.level === 2 ? 5.5 : 4.5;
           const hit = q !== "" && matches(n, q);
           const cls = [
-            "node",
+            "node", `l${n.level}`,
             n.level > 1 && !isRecent(age) && age >= 0 ? "minor" : "",
             n.status === "candidate" ? "candidate" : "",
             n.kind === "constraint" ? "constraint" : "",
@@ -92,12 +92,12 @@ function TreeLayerImpl({ layout, scale, index, lang, lod, selectedId, query, act
             activeTag && !(n.tags ?? []).includes(activeTag) ? "untag" : "",
           ].filter(Boolean).join(" ");
           return (
-            <g key={n.id} className={cls} transform={`translate(${p.x},${p.y})`} data-id={n.id} data-t={(scale.nowM - age).toFixed(3)}>
+            <g key={n.id} className={cls} transform={`translate(${p.x},${p.y})`} data-id={n.id} data-t={(scale.nowM - age).toFixed(3)} style={{ color }}>
               <g className="ns">
                 {fresh && <circle r={r0 + 2} className="pulse" />}
                 {n.kind === "constraint"
-                  ? <rect x={-r0} y={-r0} width={r0 * 2} height={r0 * 2} transform="rotate(45)" fill={color} className="shape" />
-                  : <circle r={r0} fill={color} className="shape" />}
+                  ? <rect x={-r0} y={-r0} width={r0 * 2} height={r0 * 2} transform="rotate(45)" className="shape" />
+                  : <circle r={r0} className="shape" />}
                 <text x={11} y={p.above ? -2 : 4}>
                   {n.title[lang]}{n.status === "candidate" ? " ⧗" : ""}
                   {fresh && <tspan className="badge-fresh" dx={6}>NEW</tspan>}

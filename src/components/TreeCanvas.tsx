@@ -62,7 +62,7 @@ const LinksLayer = memo(function LinksLayer({ layout, nodesById, index, selected
   const paths: ReactElement[] = [];
   if (showLinks) for (const [id, p] of pos) for (const parent of p.node.parents) {
     const pp = pos.get(parent);
-    if (pp) paths.push(<path key={`a-${parent}-${id}`} d={curve(pp, p)} className="link bg" stroke="#8aa0b5" />);
+    if (pp) paths.push(<path key={`a-${parent}-${id}`} d={curve(pp, p)} className="link bg" />);
   }
   const sel = selectedId ? pos.get(selectedId) : undefined;
   if (sel) {
@@ -143,7 +143,7 @@ export const TreeCanvas = forwardRef<CanvasHandle, Props>(function TreeCanvas(pr
     // Sticky labels on the left edge.
     for (const l of labelEls.current) {
       const sy = v.y + l.y * v.k;
-      const hide = sy < LABEL_TOP || sy > H - 10;
+      const hide = sy < LABEL_TOP || sy > H - 64; // keep clear of the bottom controls
       if (hide !== l.hidden) { l.hidden = hide; l.el.style.visibility = hide ? "hidden" : ""; }
       if (!hide) l.el.style.transform = `translate3d(0,${sy}px,0)`;
     }
