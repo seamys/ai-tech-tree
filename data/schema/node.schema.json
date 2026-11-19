@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://seamys.github.io/ai-tech-tree/data/schema/node.schema.json",
+  "title": "Tech tree node",
+  "description": "One entry in data/nodes.json. Branch, tag and criterion ids must exist in data/taxonomy.json; parent ids must exist in data/nodes.json. scripts/validate.mjs enforces these cross-file rules.",
+  "type": "object",
+  "required": ["id", "date", "branch", "parents", "level", "kind", "title", "summary", "criteria", "status"],
+  "additionalProperties": false,
+  "$defs": {
+    "bilingual": {
+      "type": "object",
+      "required": ["zh", "en"],
+      "additionalProperties": false,
+      "properties": {
+        "zh": { "type": "string", "minLength": 1 },
+        "en": { "type": "string", "minLength": 1 }
+      }
+    }
+  },
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$", "description": "Stable unique id. Never reuse or rename." },
+    "date": { "type": "string", "pattern": "^\\d{4}(-\\d{2}(-\\d{2})?)?$", "description": "YYYY, YYYY-MM or YYYY-MM-DD. Use the precision you can source." },
+    "branch": { "type": "string", "description": "Branch or sub-branch id from taxonomy.json." },
+    "parents": { "type": "array", "items": { "type": "string" }, "uniqueItems": true, "description": "Nodes this one builds on or is caused by. Must not form a cycle." },
+    "level": { "enum": [1, 2, 3], "description": "1 = milestone (always visible), 2 = important (layer view), 3 = detail (deepest zoom)." },
+    "kind": { "enum": ["paper", "release", "event", "constraint", "upcoming"], "description": "constraint = policy, supply or power limit; upcoming = scheduled future event." },
+    "title": { "$ref": "#/$defs/bilingual" },
+    "summary": { "$ref": "#/$defs/bilingual" },
+    "source": {
+      "oneOf": [{ "type": "string", "minLength": 1 }, { "$ref": "#/$defs/bilingual" }],
+      "description": "Who published it. Use a plain string when the name is the same in both languages."
+    },
+    "url": { "type": "string", "format": "uri" },
+    "criteria": { "type": "array", "minItems": 1, "items": { "type": "string" }, "description": "Why this counts; ids from taxonomy.json criteria." },
+    "tags": { "type": "array", "items": { "type": "string" }, "description": "Cross-cutting tag ids from taxonomy.json." },
+    "status": { "enum": ["verified", "candidate"], "description": "candidate = proposed by the agent, awaiting human review." },
+    "added_by": { "enum": ["human", "agent"] },
+    "added_at": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "agent_reason": { "$ref": "#/$defs/bilingual", "description": "Required for candidates: why the agent proposed this node and where." }
+  }
+}

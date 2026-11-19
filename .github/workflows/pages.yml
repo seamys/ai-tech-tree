@@ -1,34 +1,60 @@
-name: Deploy to GitHub Pages
+name: Build and deploy
 
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 
+# Least privilege by default; the deploy job asks for what it needs.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
+# One deployment at a time. Never cancel a production deploy halfway through.
 concurrency:
-  group: pages
-  cancel-in-progress: true
+  group: pages-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install dependencies
+        # Use the lockfile when present (reproducible); fall back to a fresh resolve.
+        run: |
+          if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; else npm install --no-audit --no-fund; fi
+
+      - name: Validate data
+        run: npm run validate
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload Pages artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
+  deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write # publish to Pages
+      id-token: write # prove the deployment comes from this workflow (OIDC)
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
-      - name: Collect site files
-        run: |
-          mkdir -p _site
-          cp index.html .nojekyll _site/
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: _site
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

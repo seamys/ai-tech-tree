@@ -1,0 +1,651 @@
+{
+  "zones": [
+    {
+      "id": "value",
+      "color": "#d6bcfa",
+      "ground": false,
+      "name": {
+        "zh": "价值区",
+        "en": "Value Zone"
+      },
+      "description": {
+        "zh": "应用、模型服务与工具",
+        "en": "Applications, model services and tools"
+      }
+    },
+    {
+      "id": "intel",
+      "color": "#4fd1c5",
+      "ground": false,
+      "name": {
+        "zh": "智能区",
+        "en": "Intelligence Zone"
+      },
+      "description": {
+        "zh": "基础模型与数据",
+        "en": "Foundation models and data"
+      }
+    },
+    {
+      "id": "compute",
+      "color": "#e8c468",
+      "ground": true,
+      "name": {
+        "zh": "算力区",
+        "en": "Compute Zone"
+      },
+      "description": {
+        "zh": "系统软件、数据中心、芯片",
+        "en": "System software, data centres, chips"
+      }
+    },
+    {
+      "id": "physical",
+      "color": "#c08457",
+      "ground": true,
+      "name": {
+        "zh": "物理区",
+        "en": "Physical Zone"
+      },
+      "description": {
+        "zh": "半导体制造、能源、矿产",
+        "en": "Semiconductor manufacturing, energy, minerals"
+      }
+    }
+  ],
+  "layers": [
+    {
+      "id": "L9",
+      "zone": "value",
+      "name": {
+        "zh": "应用",
+        "en": "Applications"
+      }
+    },
+    {
+      "id": "L8",
+      "zone": "value",
+      "name": {
+        "zh": "模型服务与工具",
+        "en": "Model Services & Tools"
+      }
+    },
+    {
+      "id": "L7",
+      "zone": "intel",
+      "name": {
+        "zh": "基础模型",
+        "en": "Foundation Models"
+      }
+    },
+    {
+      "id": "L6",
+      "zone": "intel",
+      "name": {
+        "zh": "数据",
+        "en": "Data"
+      }
+    },
+    {
+      "id": "L5",
+      "zone": "compute",
+      "name": {
+        "zh": "系统软件",
+        "en": "System Software"
+      }
+    },
+    {
+      "id": "L4",
+      "zone": "compute",
+      "name": {
+        "zh": "数据中心与云",
+        "en": "Data Centres & Cloud"
+      }
+    },
+    {
+      "id": "L3",
+      "zone": "compute",
+      "name": {
+        "zh": "芯片与系统",
+        "en": "Chips & Systems"
+      }
+    },
+    {
+      "id": "L2",
+      "zone": "physical",
+      "name": {
+        "zh": "半导体制造",
+        "en": "Semiconductor Manufacturing"
+      }
+    },
+    {
+      "id": "L1",
+      "zone": "physical",
+      "name": {
+        "zh": "能源与电力",
+        "en": "Energy & Power"
+      }
+    },
+    {
+      "id": "L0",
+      "zone": "physical",
+      "name": {
+        "zh": "矿产与材料",
+        "en": "Minerals & Materials"
+      }
+    }
+  ],
+  "branches": [
+    {
+      "id": "consumer",
+      "layer": "L9",
+      "name": {
+        "zh": "消费级产品",
+        "en": "Consumer Products"
+      },
+      "color": "#f687b3"
+    },
+    {
+      "id": "devent",
+      "layer": "L9",
+      "name": {
+        "zh": "开发者与企业",
+        "en": "Developers & Enterprise"
+      },
+      "color": "#b794f4"
+    },
+    {
+      "id": "science",
+      "layer": "L9",
+      "name": {
+        "zh": "科学发现",
+        "en": "Scientific Discovery"
+      },
+      "color": "#68d391"
+    },
+    {
+      "id": "embodied",
+      "layer": "L9",
+      "name": {
+        "zh": "具身智能",
+        "en": "Embodied AI"
+      },
+      "color": "#76e4f7"
+    },
+    {
+      "id": "agent",
+      "layer": "L8",
+      "name": {
+        "zh": "Agent 与工具",
+        "en": "Agents & Tools"
+      },
+      "color": "#b794f4"
+    },
+    {
+      "id": "serve",
+      "layer": "L8",
+      "name": {
+        "zh": "微调与推理服务",
+        "en": "Fine-tuning & Serving"
+      },
+      "color": "#a0aec0"
+    },
+    {
+      "id": "eval",
+      "layer": "L8",
+      "name": {
+        "zh": "评测基准",
+        "en": "Benchmarks"
+      },
+      "color": "#fbd38d"
+    },
+    {
+      "id": "found",
+      "layer": "L7",
+      "name": {
+        "zh": "生成范式",
+        "en": "Generative Paradigms"
+      },
+      "color": "#f687b3"
+    },
+    {
+      "id": "arch",
+      "layer": "L7",
+      "name": {
+        "zh": "网络架构",
+        "en": "Architectures"
+      },
+      "color": "#63b3ed"
+    },
+    {
+      "id": "llm",
+      "layer": "L7",
+      "name": {
+        "zh": "语言模型",
+        "en": "Language Models"
+      },
+      "color": "#4fd1c5"
+    },
+    {
+      "id": "llm-open",
+      "layer": "L7",
+      "name": {
+        "zh": "开源权重",
+        "en": "Open Weights"
+      },
+      "parent": "llm"
+    },
+    {
+      "id": "llm-ctx",
+      "layer": "L7",
+      "name": {
+        "zh": "长上下文",
+        "en": "Long Context"
+      },
+      "parent": "llm"
+    },
+    {
+      "id": "align",
+      "layer": "L7",
+      "name": {
+        "zh": "对齐与后训练",
+        "en": "Alignment & Post-training"
+      },
+      "color": "#9f7aea"
+    },
+    {
+      "id": "reason",
+      "layer": "L7",
+      "name": {
+        "zh": "推理",
+        "en": "Reasoning"
+      },
+      "color": "#f6e05e"
+    },
+    {
+      "id": "reason-tts",
+      "layer": "L7",
+      "name": {
+        "zh": "推理时扩展",
+        "en": "Test-Time Scaling"
+      },
+      "parent": "reason"
+    },
+    {
+      "id": "image",
+      "layer": "L7",
+      "name": {
+        "zh": "图像生成",
+        "en": "Image Generation"
+      },
+      "color": "#fc8181"
+    },
+    {
+      "id": "image-ctrl",
+      "layer": "L7",
+      "name": {
+        "zh": "可控生成与编辑",
+        "en": "Control & Editing"
+      },
+      "parent": "image"
+    },
+    {
+      "id": "video",
+      "layer": "L7",
+      "name": {
+        "zh": "视频生成",
+        "en": "Video Generation"
+      },
+      "color": "#ed8936"
+    },
+    {
+      "id": "video-world",
+      "layer": "L7",
+      "name": {
+        "zh": "世界模型",
+        "en": "World Models"
+      },
+      "parent": "video"
+    },
+    {
+      "id": "audio",
+      "layer": "L7",
+      "name": {
+        "zh": "音频与语音",
+        "en": "Audio & Speech"
+      },
+      "color": "#68d391"
+    },
+    {
+      "id": "mm",
+      "layer": "L7",
+      "name": {
+        "zh": "多模态",
+        "en": "Multimodal"
+      },
+      "color": "#76e4f7"
+    },
+    {
+      "id": "data",
+      "layer": "L6",
+      "name": {
+        "zh": "语料、数据规律与约束",
+        "en": "Corpora, Data Laws & Limits"
+      },
+      "color": "#81e6d9"
+    },
+    {
+      "id": "sw",
+      "layer": "L5",
+      "name": {
+        "zh": "训练与计算软件栈",
+        "en": "Training & Compute Software"
+      },
+      "color": "#90cdf4"
+    },
+    {
+      "id": "infra",
+      "layer": "L4",
+      "name": {
+        "zh": "数据中心与集群",
+        "en": "Data Centres & Clusters"
+      },
+      "color": "#d6a35c"
+    },
+    {
+      "id": "infra-gw",
+      "layer": "L4",
+      "name": {
+        "zh": "吉瓦级园区",
+        "en": "Gigawatt Campuses"
+      },
+      "parent": "infra"
+    },
+    {
+      "id": "chip",
+      "layer": "L3",
+      "name": {
+        "zh": "芯片与系统",
+        "en": "Chips & Systems"
+      },
+      "color": "#e8c468"
+    },
+    {
+      "id": "chip-asic",
+      "layer": "L3",
+      "name": {
+        "zh": "定制 ASIC",
+        "en": "Custom ASICs"
+      },
+      "parent": "chip"
+    },
+    {
+      "id": "fab",
+      "layer": "L2",
+      "name": {
+        "zh": "制造、封装与存储",
+        "en": "Fabrication, Packaging & Memory"
+      },
+      "color": "#c08457"
+    },
+    {
+      "id": "energy",
+      "layer": "L1",
+      "name": {
+        "zh": "能源与电力",
+        "en": "Energy & Power"
+      },
+      "color": "#f6ad55"
+    },
+    {
+      "id": "mineral",
+      "layer": "L0",
+      "name": {
+        "zh": "矿产与材料",
+        "en": "Minerals & Materials"
+      },
+      "color": "#a78b6d"
+    }
+  ],
+  "tags": [
+    {
+      "id": "policy",
+      "name": {
+        "zh": "政策与监管",
+        "en": "Policy & Regulation"
+      }
+    },
+    {
+      "id": "capital",
+      "name": {
+        "zh": "资本",
+        "en": "Capital"
+      }
+    },
+    {
+      "id": "safety",
+      "name": {
+        "zh": "安全与对齐",
+        "en": "Safety & Alignment"
+      }
+    }
+  ],
+  "criteria": {
+    "de-facto-standard": {
+      "zh": "事实标准",
+      "en": "De facto standard"
+    },
+    "industry-structure": {
+      "zh": "产业格局",
+      "en": "Industry structure"
+    },
+    "product-form": {
+      "zh": "产品形态",
+      "en": "Product form"
+    },
+    "enterprise-adoption": {
+      "zh": "企业采用",
+      "en": "Enterprise adoption"
+    },
+    "enables-large-scale-training": {
+      "zh": "使能大规模训练",
+      "en": "Enables large-scale training"
+    },
+    "supply-constraint": {
+      "zh": "供应约束",
+      "en": "Supply constraint"
+    },
+    "key-process": {
+      "zh": "关键工艺",
+      "en": "Key process"
+    },
+    "single-point-of-failure": {
+      "zh": "单点依赖",
+      "en": "Single point of failure"
+    },
+    "benchmark-gain": {
+      "zh": "基准提升",
+      "en": "Benchmark gain"
+    },
+    "mass-adoption": {
+      "zh": "大规模采用",
+      "en": "Mass adoption"
+    },
+    "foundational": {
+      "zh": "奠基性",
+      "en": "Foundational"
+    },
+    "foundational-data": {
+      "zh": "奠基性数据",
+      "en": "Foundational data"
+    },
+    "foundational-architecture": {
+      "zh": "奠基性架构",
+      "en": "Foundational architecture"
+    },
+    "open-data": {
+      "zh": "开放数据",
+      "en": "Open data"
+    },
+    "open-ecosystem": {
+      "zh": "开源生态",
+      "en": "Open ecosystem"
+    },
+    "to-watch": {
+      "zh": "待观察",
+      "en": "To watch"
+    },
+    "changed-research-direction": {
+      "zh": "改变研发方向",
+      "en": "Changed research direction"
+    },
+    "policy-change": {
+      "zh": "政策变化",
+      "en": "Policy change"
+    },
+    "policy-constraint": {
+      "zh": "政策约束",
+      "en": "Policy constraint"
+    },
+    "data-constraint": {
+      "zh": "数据约束",
+      "en": "Data constraint"
+    },
+    "data-quality": {
+      "zh": "数据质量",
+      "en": "Data quality"
+    },
+    "new-tool": {
+      "zh": "新工具",
+      "en": "New tool"
+    },
+    "new-form": {
+      "zh": "新形态",
+      "en": "New form"
+    },
+    "new-technology": {
+      "zh": "新技术",
+      "en": "New technology"
+    },
+    "new-method": {
+      "zh": "新方法",
+      "en": "New method"
+    },
+    "new-architecture": {
+      "zh": "新架构",
+      "en": "New architecture"
+    },
+    "architecture-variant": {
+      "zh": "新架构变体",
+      "en": "Architecture variant"
+    },
+    "new-capability": {
+      "zh": "新能力",
+      "en": "New capability"
+    },
+    "new-paradigm": {
+      "zh": "新范式",
+      "en": "New paradigm"
+    },
+    "new-training-objective": {
+      "zh": "新训练目标",
+      "en": "New training objective"
+    },
+    "new-evaluation-paradigm": {
+      "zh": "新评测范式",
+      "en": "New evaluation paradigm"
+    },
+    "new-route": {
+      "zh": "新路线",
+      "en": "New route"
+    },
+    "method-published": {
+      "zh": "方法公开",
+      "en": "Method published"
+    },
+    "widely-adopted-method": {
+      "zh": "方法被广泛沿用",
+      "en": "Widely adopted method"
+    },
+    "architecture-leap": {
+      "zh": "架构跃迁",
+      "en": "Architecture leap"
+    },
+    "architecture-iteration": {
+      "zh": "架构迭代",
+      "en": "Architecture iteration"
+    },
+    "standardisation": {
+      "zh": "标准化",
+      "en": "Standardisation"
+    },
+    "legal-constraint": {
+      "zh": "法律约束",
+      "en": "Legal constraint"
+    },
+    "power-constraint": {
+      "zh": "电力约束",
+      "en": "Power constraint"
+    },
+    "dedicated-power": {
+      "zh": "电力配套",
+      "en": "Dedicated power"
+    },
+    "scientific-breakthrough": {
+      "zh": "科学突破",
+      "en": "Scientific breakthrough"
+    },
+    "product-of-a-constraint": {
+      "zh": "约束的产物",
+      "en": "Product of a constraint"
+    },
+    "capability-leap": {
+      "zh": "能力跃迁",
+      "en": "Capability leap"
+    },
+    "capability-milestone": {
+      "zh": "能力里程碑",
+      "en": "Capability milestone"
+    },
+    "energy-efficiency": {
+      "zh": "能效",
+      "en": "Energy efficiency"
+    },
+    "energy-mix": {
+      "zh": "能源结构",
+      "en": "Energy mix"
+    },
+    "paradigm-established": {
+      "zh": "范式确立",
+      "en": "Paradigm established"
+    },
+    "widely-adopted": {
+      "zh": "被广泛沿用",
+      "en": "Widely adopted"
+    },
+    "scale-leap": {
+      "zh": "规模跃迁",
+      "en": "Scale leap"
+    },
+    "training-efficiency": {
+      "zh": "训练效率",
+      "en": "Training efficiency"
+    },
+    "quality-sota": {
+      "zh": "质量 SOTA",
+      "en": "Quality SOTA"
+    },
+    "quality-leap": {
+      "zh": "质量跃迁",
+      "en": "Quality leap"
+    },
+    "capital-scale": {
+      "zh": "资本规模",
+      "en": "Capital scale"
+    },
+    "barrier-lowered": {
+      "zh": "门槛大降",
+      "en": "Barrier lowered"
+    }
+  }
+}

@@ -1,38 +1,73 @@
-# 生成式 AI 技术路线树 · Generative AI Tech Roadmap
+# Generative AI Tech Roadmap
 
-一棵从矿产、能源一直延伸到应用层的生成式 AI 技术树：横轴是时间，越放大越细，带实时的“现在”线。
+An interactive map of generative AI, from the minerals and energy underneath it to the applications on top, laid out on a live timeline.
 
-A generative AI technology tree that runs from minerals and energy all the way up to applications: time on the horizontal axis, more detail as you zoom in, and a live "now" line.
+**Live site:** https://seamys.github.io/ai-tech-tree/ (add `#en` or `#zh` to pick the language)
 
-## 功能 · Features
+## What it shows
 
-- **10 层 / 4 大区 · 10 layers in 4 zones**：价值区（应用、模型服务）、智能区（基础模型、数据）、算力区（系统软件、数据中心、芯片）、物理区（制造、能源、矿产）。Value, Intelligence, Compute and Physical zones.
-- **语义缩放 · Semantic zoom**：概览 → 分层 → 子分支，三级细节随缩放出现。Overview → layers → sub-branches.
-- **实时时间轴 · Live timeline**：聚焦近期的对数时间轴（可切换线性），按真实时钟移动的“现在”线，30 天内新节点高亮，未来计划节点，时间回放。Log-scaled "recent focus" axis (or linear), a now line driven by the real clock, fresh-node highlights, scheduled future nodes, and replay.
-- **两种节点 · Two node types**：● 技术突破、◆ 约束 / 事件（出口管制、产能、电力等）。● breakthroughs and ◆ constraints/events.
-- **中英双语 · Bilingual**：右上角切换，或在链接末尾加 `#en` / `#zh`。Toggle top-right, or add `#en` / `#zh` to the URL.
+- **10 layers in 4 zones.** Value (applications, model services and tools), Intelligence (foundation models, data), Compute (system software, data centres, chips) and Physical (fabrication, energy, minerals). The physical layers are drawn below a ground line as the tree's roots.
+- **Semantic zoom.** Zooming in reveals more: overview (milestones only) → layers and branches → sub-branches and detail nodes.
+- **Live timeline.** A log-scaled "recent focus" axis (or linear), a "now" line driven by the real clock, red pulses on nodes from the last 30 days, scheduled future nodes, and a replay slider.
+- **Two kinds of node.** ● breakthroughs and ◆ constraints/events such as export controls, capacity shortages and power limits.
+- **Bilingual.** Chinese and English for both the interface and the content.
 
-## 数据格式 · Data format
+## Quick start
 
-每个节点都是 `index.html` 里 `NODES` 数组中的一条记录 · Each node is one entry in the `NODES` array in `index.html`:
-
-```js
-{
-  id, title, date: "YYYY" | "YYYY-MM" | "YYYY-MM-DD", branch, parents: [id...],
-  level: 1 | 2 | 3,                       // 1 里程碑 milestone · 2 重要 important · 3 细节 detail
-  kind: "paper" | "release" | "event" | "constraint" | "upcoming",
-  summary, source, url, criteria: [...], tags: [...],
-  status: "verified" | "candidate", added_by, added_at, confidence,
-  en: { title, summary }                  // 英文版 English version
-}
+```bash
+npm install
+npm run dev        # http://localhost:5173, rebuilds on change
+npm run check      # validate data + type-check
+npm run build      # production build into dist/
 ```
 
-## 部署 · Deployment
+Requires Node.js 22 or newer (CI uses the version in `.nvmrc`).
 
-推送到 `main` 后，GitHub Actions 会自动部署到 GitHub Pages（仓库 Settings → Pages → Source 需选 “GitHub Actions”）。
+## Project layout
 
-Pushing to `main` deploys to GitHub Pages via GitHub Actions (set Settings → Pages → Source to "GitHub Actions").
+```
+data/
+  taxonomy.json            zones, layers, branches, tags, criteria (all bilingual)
+  nodes.json               the nodes, one per line for readable diffs
+  schema/node.schema.json  the node contract (JSON Schema)
+src/
+  lib/time.ts              time scales (linear / recent focus), date parsing
+  lib/layout.ts            pure layout: data + zoom level -> positions
+  components/              React components (canvas, panels, header, controls)
+  i18n.ts                  interface strings
+scripts/
+  build.mjs                esbuild bundle, hashed assets, data version stamp
+  validate.mjs             data checks run in CI before every deploy
+```
 
-## 说明 · Notes
+Code and content are separate: the page fetches `data/*.json` at runtime. Editing data never requires touching code. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for design and performance notes.
 
-数据截至 2026-11，部分节点日期和事实尚待逐条核对。This is seed data as of 2026-11; some dates and facts are still being verified.
+## Adding or editing nodes
+
+Add one line to `data/nodes.json`:
+
+```json
+{"id": "my-node", "date": "2026-11-19", "branch": "chip", "parents": ["h100"], "level": 2, "kind": "release",
+ "title": {"zh": "中文标题", "en": "English title"}, "summary": {"zh": "…", "en": "…"},
+ "source": "NVIDIA", "url": "https://…", "criteria": ["architecture-leap"], "status": "verified"}
+```
+
+- `date`: `YYYY`, `YYYY-MM` or `YYYY-MM-DD`, as precise as your source allows.
+- `level`: `1` milestone (always visible), `2` important, `3` detail (deepest zoom only).
+- `kind`: `paper`, `release`, `event`, `constraint` or `upcoming`.
+- `branch`, `criteria`, `tags` must be ids from `data/taxonomy.json`; `parents` must be existing node ids.
+- Agent-proposed nodes use `"status": "candidate"` plus `agent_reason` and `confidence`. They show up in the review queue.
+
+Run `npm run validate` before committing. CI runs it too and refuses to deploy invalid data.
+
+## Deployment
+
+Every push to `main` runs `.github/workflows/pages.yml`: install → validate data → type-check → build → deploy to GitHub Pages. Pull requests run the same checks without deploying.
+
+One-time setup: **Settings → Pages → Source: GitHub Actions**.
+
+The workflow uses current major versions of the official actions (Node 24 runtime), least-privilege permissions, and does not cancel a production deploy in progress. Dependabot keeps the actions and npm dependencies up to date.
+
+## Notes
+
+The data is a seed set as of November 2026. Some dates and facts are still being verified; corrections are welcome.
