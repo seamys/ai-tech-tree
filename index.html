@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>生成式 AI 技术路线树</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b0f14; --bg2:#111821; --line:#1e2a36; --text:#d7e1ea; --dim:#7d8da0; --faint:#3a4a5c;
+  --accent:#4fd1c5; --warn:#f6ad55; --panel:#0f151d;
+  --mono:'JetBrains Mono',ui-monospace,monospace; --sans:'Noto Sans SC',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:var(--sans);overflow:hidden}
+header{position:fixed;top:0;left:0;right:0;height:56px;display:flex;align-items:center;gap:14px;padding:0 16px;
+  background:rgba(11,15,20,.92);border-bottom:1px solid var(--line);z-index:10;backdrop-filter:blur(6px)}
+header h1{font-size:15px;font-weight:700;margin:0;white-space:nowrap;letter-spacing:.5px}
+header h1 span{font-family:var(--mono);color:var(--accent);font-weight:400;font-size:12px;margin-left:8px}
+.search{flex:0 1 260px;background:var(--bg2);border:1px solid var(--line);color:var(--text);border-radius:6px;padding:7px 10px;font:13px var(--sans);outline:none}
+.search:focus{border-color:var(--accent)}
+.btn{background:var(--bg2);border:1px solid var(--line);color:var(--text);border-radius:6px;padding:6px 10px;font:12px var(--sans);cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:var(--faint)}
+.btn.on{border-color:var(--accent);color:var(--accent)}
+.btn.warn{border-color:#6b4a22;color:var(--warn)}
+.spacer{flex:1}
+#legend{position:fixed;top:56px;left:0;right:0;height:38px;display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;padding:7px 16px;z-index:9;background:rgba(11,15,20,.92);border-bottom:1px solid var(--line);scrollbar-width:none}
+#legend::-webkit-scrollbar{display:none}
+.chip{flex-shrink:0;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:3px 9px;border-radius:999px;
+  border:1px solid var(--line);background:rgba(17,24,33,.85);cursor:pointer;color:var(--text);user-select:none}
+.chip i{width:8px;height:8px;border-radius:50%}
+.chip.off{opacity:.6}
+.chip.tagon{border-color:var(--accent);color:var(--accent)}
+.divider{flex-shrink:0;white-space:nowrap;font-size:11px;color:#8a7356;align-self:center;padding:0 4px 0 8px}
+svg{position:fixed;inset:0;width:100%;height:100%;cursor:grab;touch-action:none}
+svg.drag{cursor:grabbing}
+.yearline{stroke:var(--line);stroke-width:1}
+.yearlabel{fill:var(--faint);font:600 12px var(--mono)}
+.trunk{stroke:#2f4256;stroke-width:10;stroke-linecap:round}
+.limb{fill:none;stroke-width:4;stroke-linecap:round;opacity:.55}
+.twig{stroke-width:1.2;opacity:.5}
+.lanelabel{font:700 14px var(--sans);paint-order:stroke;stroke:var(--bg);stroke-width:5px}
+.node{cursor:pointer}
+.node .shape{stroke:var(--bg);stroke-width:2}
+.node.constraint .shape{stroke:#1a1208;stroke-width:2}
+.soil{fill:#1a140d;opacity:.55}
+.groundline{stroke:#6b5233;stroke-width:2;stroke-dasharray:10 6}
+.groundlabel{fill:#a88c66;paint-order:stroke;stroke:var(--bg);stroke-width:4px;font:600 12px var(--sans);letter-spacing:1px}
+.rootlimb{stroke-dasharray:1 0}
+.node text{font:12px var(--sans);fill:var(--text);paint-order:stroke;stroke:var(--bg);stroke-width:4px;stroke-linejoin:round}
+.node .date{font:10px var(--mono);fill:var(--dim)}
+.node.minor text{font-size:11px;fill:#b5c2cf}
+.node.candidate .shape{stroke:var(--warn);stroke-width:2;stroke-dasharray:3 2}
+.node.dim{opacity:.15}
+.node.hit .shape{stroke:#fff;stroke-width:3}
+.node.sel .shape{stroke:#fff;stroke-width:3}
+.zoomed-out .node.minor text{display:none}
+.zoomed-out .node .date{display:none}
+.link{fill:none;stroke-width:1.6;opacity:.8}
+.link.child{stroke-dasharray:5 4}
+.link.bg{opacity:.14;stroke-width:1}
+.link.bg.faint{opacity:.05}
+.link.direct{stroke-width:2.4;opacity:.95}
+.link.indirect{stroke-width:1.5;opacity:.6}
+.node.fade{opacity:.18}
+.node.chain text{fill:#fff}
+.root text{font:700 16px var(--sans);fill:var(--text)}
+#panel{position:fixed;top:56px;right:0;bottom:0;width:380px;background:var(--panel);border-left:1px solid var(--line);
+  transform:translateX(100%);transition:transform .2s;z-index:11;overflow-y:auto;padding:18px 18px 40px}
+#panel.open{transform:none}
+#panel .close{position:absolute;top:12px;right:12px}
+#panel h2{font-size:18px;margin:4px 30px 6px 0}
+.meta{font:12px var(--mono);color:var(--dim);margin-bottom:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.tag{font:11px var(--sans);padding:2px 8px;border-radius:4px;border:1px solid var(--line)}
+.tag.cand{color:var(--warn);border-color:#6b4a22}
+.tag.ok{color:var(--accent);border-color:#1f4e4a}
+#panel p{font-size:13px;line-height:1.7;color:#c3cfdb}
+#panel h3{font-size:11px;letter-spacing:1px;color:var(--dim);margin:18px 0 8px;font-weight:500;text-transform:uppercase}
+.rel{display:flex;flex-wrap:wrap;gap:6px}
+.rel .chip{font-size:12px}
+#panel a{color:var(--accent);word-break:break-all;font-size:12px}
+pre{background:#0a0e13;border:1px solid var(--line);border-radius:6px;padding:10px;font:11px/1.5 var(--mono);color:#9fb3c6;overflow-x:auto;white-space:pre-wrap}
+.qitem{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:10px;background:var(--bg2)}
+.qitem b{font-size:14px}
+.qitem .why{font-size:12px;color:var(--dim);margin:6px 0 8px;line-height:1.6}
+.qitem .row{display:flex;gap:6px}
+.feed{font-size:12px;border-left:2px solid var(--line);padding:2px 0 8px 10px;margin-left:4px;cursor:pointer}
+.feed .t{font-family:var(--mono);color:var(--dim);font-size:11px}
+#zoomctl{position:fixed;left:16px;bottom:16px;display:flex;gap:6px;z-index:9}
+#hint{position:fixed;left:16px;bottom:58px;font:11px var(--sans);color:var(--dim);background:rgba(11,15,20,.9);padding:4px 8px;border-radius:4px;z-index:9;transition:opacity .6s}
+#hint.gone{opacity:0;pointer-events:none}
+#overlay{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:8;cursor:default}
+.ov-years{fill:rgba(11,15,20,.92)}
+.ov-year{fill:var(--dim);font:600 11px var(--mono)}
+.ov-lane{font:700 12px var(--sans)}
+.zonehead{pointer-events:auto;cursor:pointer}
+.ov-zone{font:700 13px var(--sans)}
+.ov-zone-sub{font:400 11px var(--sans);fill:var(--dim)}
+.ov-layer{font:600 11px var(--mono);letter-spacing:.5px;opacity:.85;paint-order:stroke;stroke:var(--bg);stroke-width:4px}
+.node.untag{opacity:.12}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#14212c;border:1px solid var(--accent);color:var(--text);
+  padding:8px 14px;border-radius:6px;font-size:13px;opacity:0;transition:opacity .2s;z-index:20;pointer-events:none}
+@media (max-width:720px){
+  header{gap:8px;padding:0 10px}
+  header h1{font-size:13px}
+  header h1 span,.long{display:none}
+  .search{flex:1 1 60px;min-width:0;padding:6px 8px;font-size:12px}
+  .btn{padding:6px 8px}
+  #btnLinks{display:none}
+  #zoomctl .btn{padding:6px 7px}
+  #panel{width:100%;top:auto;height:62%;border-left:none;border-top:1px solid var(--line);transform:translateY(100%)}
+  #panel.open{transform:none}
+}
+
+.tick{stroke:var(--line);stroke-width:1}
+.tick.m{stroke:#141c25}
+.tick.q{stroke:#18222d}
+.tick.hide{display:none}
+.ov-year.minor{fill:#56677a;font-weight:400}
+.nowline{stroke:#ff5d73;stroke-width:2;stroke-dasharray:2 3;opacity:.9}
+.futurezone{fill:#ff5d73;opacity:.035}
+.ov-now rect{fill:#2a0f15;stroke:#ff5d73}
+.ov-now text{fill:#ffb3be;font:600 11px var(--mono)}
+.ov-now circle{fill:#ff5d73;animation:blink 1.6s infinite}
+@keyframes blink{50%{opacity:.25}}
+.limb-stale{fill:none;stroke-width:2;stroke-dasharray:3 6;opacity:.35}
+.pulse{fill:none;stroke:#ff5d73;stroke-width:2;animation:pulse 1.8s ease-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes pulse{0%{opacity:.9;transform:scale(1)}100%{opacity:0;transform:scale(3)}}
+.node.recent .shape{stroke:#ff9aa8;stroke-width:2}
+.node.future .shape{fill-opacity:.15;stroke-dasharray:2 2;stroke-width:2}
+.node.notyet{opacity:.05;pointer-events:none}
+.badge-fresh{fill:#ff5d73;font:700 9px var(--mono)}
+#timebar{position:fixed;right:16px;bottom:14px;z-index:9;display:flex;align-items:center;gap:8px;
+  background:rgba(15,21,29,.95);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font:12px var(--mono);color:var(--dim)}
+#timebar input{width:min(36vw,360px);accent-color:#ff5d73}
+#timebar b{color:#ffb3be;font-weight:600;min-width:86px;display:inline-block}
+#lodbadge{font:11px var(--sans);color:var(--dim);align-self:center;padding:0 6px;white-space:nowrap}
+#lodbadge b{color:var(--accent)}
+@media (max-width:720px){
+  #timebar{right:8px;bottom:58px}
+  #btnTime{display:none}
+  #timebar input{width:150px}
+  #lodbadge{display:none}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1><em class="long" style="font-style:normal" id="ttl1">生成式 AI </em><b id="ttl2" style="font-weight:inherit">技术路线树</b><span id="ttlv">v0.5</span></h1>
+  <input class="search" id="search" placeholder="搜索节点">
+  <div class="spacer"></div>
+  <button class="btn" id="btnLang" style="font-weight:600">EN</button><button class="btn" id="btnTime" title="切换时间轴比例">时间：<span id="tmode">聚焦近期</span></button><button class="btn" id="btnLinks">依赖连线</button>
+  <button class="btn" id="btnFeed"><span class="long">更新</span>动态</button>
+  <button class="btn warn" id="btnQueue"><span class="long">待</span>审核 <b id="qcount">0</b></button>
+</header>
+<div id="legend"></div>
+<svg id="svg"><g id="world"></g></svg>
+<svg id="overlay"><rect class="ov-years" x="0" y="94" width="100%" height="22"></rect><g id="ovYears"></g><g id="ovLanes"></g></svg>
+<div id="hint">滚轮上下移动 · Ctrl+滚轮或双指捏合缩放，越放大越细 · 点节点看详情</div>
+<div id="zoomctl">
+  <button class="btn" data-z="1.25">＋</button><button class="btn" data-z="0.8">－</button><button class="btn" data-z="0" id="fitBtn">适配</button><button class="btn" id="toRoots">⇣ 根系</button><button class="btn" id="toTop">⇡ 树冠</button><span id="lodbadge"></span>
+</div>
+<div id="timebar"><button class="btn" id="play">▶ 回放</button><input type="range" id="scrub" min="0" max="1000" value="1000"><b id="scrubLabel">现在</b></div>
+<aside id="panel"><button class="btn close" id="closePanel">✕</button><div id="pbody"></div></aside>
+<div id="toast"></div>
+
+<script>
+/* ===== 数据结构（Agent 读写的就是这个格式） =====
+ Node = {
+   id, title, date:"YYYY" | "YYYY-MM" | "YYYY-MM-DD", branch, parents:[id...],  // 多父节点 → 有向图
+   level: 1 里程碑 | 2 重要 | 3 细节    // 决定缩放到哪一级才出现
+   kind: "paper" | "release" | "event" | "constraint" | "upcoming",
+   summary, source, url, criteria:[...], tags:[...],
+   status: "verified" | "candidate", added_by, added_at, confidence
+ }
+*/
+const ZONES = [
+  {id:"value",    name:"价值区", color:"#d6bcfa", desc:"应用、模型服务与工具"},
+  {id:"intel",    name:"智能区", color:"#4fd1c5", desc:"基础模型与数据"},
+  {id:"compute",  name:"算力区", color:"#e8c468", desc:"系统软件、数据中心、芯片", ground:true},
+  {id:"physical", name:"物理区", color:"#c08457", desc:"半导体制造、能源、矿产", ground:true},
+];
+// 10 层（L9 最上，L0 最下）
+const LAYERS = [
+  {id:"L9", name:"应用", zone:"value"},
+  {id:"L8", name:"模型服务与工具", zone:"value"},
+  {id:"L7", name:"基础模型", zone:"intel"},
+  {id:"L6", name:"数据", zone:"intel"},
+  {id:"L5", name:"系统软件", zone:"compute"},
+  {id:"L4", name:"数据中心与云", zone:"compute"},
+  {id:"L3", name:"芯片与系统", zone:"compute"},
+  {id:"L2", name:"半导体制造", zone:"physical"},
+  {id:"L1", name:"能源与电力", zone:"physical"},
+  {id:"L0", name:"矿产与材料", zone:"physical"},
+];
+// 每层下的分支（泳道）
+const BRANCHES = [
+  {id:"consumer", name:"消费级产品", color:"#f687b3", layer:"L9"},
+  {id:"devent",   name:"开发者与企业", color:"#b794f4", layer:"L9"},
+  {id:"science",  name:"科学发现", color:"#68d391", layer:"L9"},
+  {id:"embodied", name:"具身智能", color:"#76e4f7", layer:"L9"},
+  {id:"agent",    name:"Agent 与工具", color:"#b794f4", layer:"L8"},
+  {id:"serve",    name:"微调与推理服务", color:"#a0aec0", layer:"L8"},
+  {id:"eval",     name:"评测基准", color:"#fbd38d", layer:"L8"},
+  {id:"found", name:"生成范式", color:"#f687b3", layer:"L7"},
+  {id:"arch",  name:"网络架构", color:"#63b3ed", layer:"L7"},
+  {id:"llm",   name:"语言模型", color:"#4fd1c5", layer:"L7"},
+  {id:"llm-open", name:"开源权重", sub:"llm", layer:"L7"},
+  {id:"llm-ctx",  name:"长上下文", sub:"llm", layer:"L7"},
+  {id:"align", name:"对齐与后训练", color:"#9f7aea", layer:"L7"},
+  {id:"reason",name:"推理", color:"#f6e05e", layer:"L7"},
+  {id:"reason-tts", name:"推理时扩展", sub:"reason", layer:"L7"},
+  {id:"image", name:"图像生成", color:"#fc8181", layer:"L7"},
+  {id:"image-ctrl", name:"可控生成与编辑", sub:"image", layer:"L7"},
+  {id:"video", name:"视频生成", color:"#ed8936", layer:"L7"},
+  {id:"video-world", name:"世界模型", sub:"video", layer:"L7"},
+  {id:"audio", name:"音频与语音", color:"#68d391", layer:"L7"},
+  {id:"mm",    name:"多模态", color:"#76e4f7", layer:"L7"},
+  {id:"data",  name:"语料、数据规律与约束", color:"#81e6d9", layer:"L6"},
+  {id:"sw",    name:"训练与计算软件栈", color:"#90cdf4", layer:"L5"},
+  {id:"infra", name:"数据中心与集群", color:"#d6a35c", layer:"L4"},
+  {id:"infra-gw", name:"吉瓦级园区", sub:"infra", layer:"L4"},
+  {id:"chip",  name:"芯片与系统", color:"#e8c468", layer:"L3"},
+  {id:"chip-asic", name:"定制 ASIC", sub:"chip", layer:"L3"},
+  {id:"fab",   name:"制造、封装与存储", color:"#c08457", layer:"L2"},
+  {id:"energy",name:"能源与电力", color:"#f6ad55", layer:"L1"},
+  {id:"mineral",name:"矿产与材料", color:"#a78b6d", layer:"L0"},
+];
+// 横切维度：不单独成层，作为标签
+const TAGS = [{id:"policy", name:"政策与监管"}, {id:"capital", name:"资本"}, {id:"safety", name:"安全与对齐"}];
+const brOf = id => BRANCHES.find(b => b.id === id);
+const layerOf = n => LAYERS.find(l => l.id === brOf(n.branch).layer);
+const zoneOf = n => ZONES.find(z => z.id === layerOf(n).zone);
+
+const ax = id => "https://arxiv.org/abs/" + id;
+const N = (id,title,date,branch,parents,o={}) => Object.assign({id,title,date,branch,parents,major:false,kind:"paper",
+  summary:"",source:"",url:"",criteria:[],tags:[],status:"verified",added_by:"human",added_at:"2026-11-19",confidence:1},o);
+
+let NODES = [
+ // 生成范式
+ N("vae","VAE 变分自编码器","2013-12","found",[],{major:true,url:ax("1312.6114"),source:"Kingma & Welling",summary:"用变分推断训练带潜变量的生成模型，后来成为潜空间扩散模型的压缩器。",criteria:["新范式","被广泛沿用"]}),
+ N("gan","GAN 生成对抗网络","2014-06","found",[],{major:true,url:ax("1406.2661"),source:"Goodfellow 等",summary:"生成器与判别器对抗训练，开启了高质量图像生成的一个时代。",criteria:["新范式"]}),
+ N("ddpm","DDPM 去噪扩散模型","2020-06","found",["vae"],{major:true,url:ax("2006.11239"),source:"Ho 等",summary:"把扩散过程做成实用的图像生成方法，质量追平并超越 GAN，成为图像/视频生成的主流范式。",criteria:["新范式","质量 SOTA"]}),
+ N("cfg","Classifier-Free Guidance","2022-07","found",["ddpm"],{url:ax("2207.12598"),source:"Ho & Salimans",summary:"不需要额外分类器即可做条件引导，几乎所有文生图模型都在用。",criteria:["被广泛沿用"]}),
+ N("flowmatch","Flow Matching","2022-10","found",["ddpm"],{url:ax("2210.02747"),source:"Lipman 等",summary:"用回归速度场的方式训练连续流模型，成为新一代图像/视频模型的训练目标之一。",criteria:["新训练目标"],status:"candidate",added_by:"agent",added_at:"2026-11-19",confidence:0.71,agent_reason:"近期多个图像/视频模型技术报告采用此训练目标，建议挂在『生成范式』下，父节点 DDPM。"}),
+ // 网络架构
+ N("transformer","Transformer","2017-06","arch",["p100"],{major:true,url:ax("1706.03762"),source:"Vaswani 等",summary:"纯注意力架构，几乎所有现代生成模型的共同祖先。",criteria:["奠基性架构"]}),
+ N("scaling","Scaling Laws","2020-01","arch",["transformer"],{major:true,url:ax("2001.08361"),source:"Kaplan 等",summary:"发现损失随参数、数据、算力呈幂律下降，直接推动了大模型路线。",criteria:["改变研发方向"]}),
+ N("switch","Switch Transformer (MoE)","2021-01","arch",["transformer"],{url:ax("2101.03961"),source:"Fedus 等",summary:"稀疏专家混合，让参数量与单次计算量解耦。",criteria:["新架构变体"]}),
+ N("mamba","Mamba 状态空间模型","2023-12","arch",["transformer"],{url:ax("2312.00752"),source:"Gu & Dao",summary:"选择性状态空间模型，序列长度上线性复杂度，是 Transformer 的竞争路线之一。",criteria:["新架构"],status:"candidate",added_by:"agent",added_at:"2026-11-19",confidence:0.62,agent_reason:"架构路线上有代表性，但主流生成模型采用程度待确认；父节点关系（Transformer）为竞争而非继承，需人工判断。"}),
+ // 语言模型
+ N("gpt1","GPT-1","2018-06","llm",["transformer"],{kind:"release",source:"OpenAI",summary:"生成式预训练 + 下游微调，证明了“先预训练再迁移”的路线。",criteria:["新范式"]}),
+ N("gpt2","GPT-2","2019-02","llm",["gpt1"],{kind:"release",source:"OpenAI",summary:"规模扩大后零样本生成能力明显出现。",criteria:["能力跃迁"]}),
+ N("gpt3","GPT-3","2020-05-28","llm",["gpt2","scaling","azuresc"],{major:true,url:ax("2005.14165"),source:"Brown 等",summary:"175B 参数，展示了上下文学习（few-shot in-context learning）。",criteria:["能力跃迁"]}),
+ N("chatgpt","ChatGPT","2022-11-30","consumer",["gpt3","instructgpt"],{major:true,kind:"release",source:"OpenAI",summary:"对话式产品形态让生成式 AI 进入大众视野。",criteria:["大规模采用"]}),
+ N("llama","LLaMA","2023-02","llm",["gpt3","chinchilla"],{major:true,url:ax("2302.13971"),source:"Meta",summary:"高质量开放权重模型，催生了开源大模型生态。",criteria:["开源生态"]}),
+ N("gpt4","GPT-4","2023-03-14","llm",["chatgpt","azuresc"],{major:true,url:ax("2303.08774"),source:"OpenAI",summary:"在大量专业考试和基准上大幅提升，支持图像输入。",criteria:["能力跃迁"]}),
+ N("mixtral","Mixtral 8x7B","2023-12","llm-open",["switch","llama"],{url:ax("2401.04088"),source:"Mistral AI",summary:"开放权重的 MoE 模型，让稀疏专家路线在开源界普及。",criteria:["开源生态"]}),
+ // 对齐
+ N("rlhf","人类偏好强化学习","2017-06","align",[],{tags:["safety"],url:ax("1706.03741"),source:"Christiano 等",summary:"从人类比较偏好中学习奖励函数，RLHF 的源头。",criteria:["新方法"]}),
+ N("instructgpt","InstructGPT / RLHF","2022-03","align",["rlhf","gpt3"],{tags:["safety"],major:true,url:ax("2203.02155"),source:"Ouyang 等",summary:"把 RLHF 用在语言模型上，小模型的指令遵循胜过大得多的基础模型。",criteria:["方法被广泛沿用"]}),
+ N("cai","Constitutional AI","2022-12","align",["instructgpt"],{tags:["safety"],url:ax("2212.08073"),source:"Anthropic",summary:"用一组原则让模型自我批评与修正，减少对人工标注的依赖（RLAIF）。",criteria:["新方法"]}),
+ N("dpo","DPO 直接偏好优化","2023-05","align",["instructgpt"],{tags:["safety"],major:true,url:ax("2305.18290"),source:"Rafailov 等",summary:"不训练奖励模型、直接用偏好数据优化策略，大幅简化对齐流程。",criteria:["被广泛沿用"]}),
+ // 推理
+ N("cot","思维链 Chain-of-Thought","2022-01","reason",["gpt3"],{major:true,url:ax("2201.11903"),source:"Wei 等",summary:"让模型先写出中间推理步骤，显著提升数学与逻辑题表现。",criteria:["能力跃迁"]}),
+ N("selfcons","Self-Consistency","2022-03","reason",["cot"],{url:ax("2203.11171"),source:"Wang 等",summary:"多次采样推理路径后投票，进一步提升准确率。",criteria:["基准提升"]}),
+ N("grpo","GRPO（DeepSeekMath）","2024-02","reason",["instructgpt"],{url:ax("2402.03300"),source:"DeepSeek",summary:"组内相对策略优化，省掉价值网络，后来成为推理模型 RL 的常用算法。",criteria:["被广泛沿用"]}),
+ N("o1","OpenAI o1","2024-09-12","reason",["cot","gpt4"],{major:true,kind:"release",source:"OpenAI",summary:"用强化学习训练长思维链，推理时算力越多效果越好。",criteria:["新范式"]}),
+ N("r1","DeepSeek-R1","2025-01-20","reason",["grpo","o1","dsv3"],{major:true,url:ax("2501.12948"),source:"DeepSeek",summary:"开放权重的推理模型，公开了以纯 RL 激发推理能力的做法。",criteria:["开源生态","方法公开"]}),
+ // 图像
+ N("stylegan","StyleGAN","2018-12","image",["gan"],{url:ax("1812.04948"),source:"NVIDIA",summary:"风格化生成器，高分辨率人脸生成达到以假乱真。",criteria:["质量 SOTA"]}),
+ N("dalle","DALL·E","2021-01","image",["transformer"],{major:true,url:ax("2102.12092"),source:"OpenAI",summary:"首个引起广泛关注的大规模文生图模型。",criteria:["新能力"]}),
+ N("ldm","潜空间扩散 LDM","2021-12","image",["ddpm","vae"],{major:true,url:ax("2112.10752"),source:"Rombach 等",summary:"在 VAE 压缩后的潜空间里做扩散，计算量大降，Stable Diffusion 的基础。",criteria:["方法被广泛沿用"]}),
+ N("dalle2","DALL·E 2","2022-04","image",["clip","ddpm"],{url:ax("2204.06125"),source:"OpenAI",summary:"CLIP 潜变量 + 扩散解码，文生图质量大跃进。",criteria:["质量跃迁"]}),
+ N("sd","Stable Diffusion","2022-08","image",["ldm","clip","cfg","laion5b"],{major:true,kind:"release",source:"Stability AI 等",summary:"开放权重的文生图模型，可在消费级显卡运行，引爆社区生态。",criteria:["开源生态","大规模采用"]}),
+ N("dit","DiT 扩散 Transformer","2022-12","image",["ddpm","transformer"],{major:true,url:ax("2212.09748"),source:"Peebles & Xie",summary:"用 Transformer 替代 U-Net 作扩散主干，扩展性更好，后来被视频模型采用。",criteria:["新架构"]}),
+ N("controlnet","ControlNet","2023-02","image-ctrl",["sd"],{url:ax("2302.05543"),source:"Zhang 等",summary:"用边缘、姿态等条件精确控制生成结构。",criteria:["新能力","被广泛沿用"]}),
+ // 视频
+ N("vdm","Video Diffusion Models","2022-04","video",["ddpm"],{url:ax("2204.03458"),source:"Ho 等",summary:"把扩散模型扩展到视频生成。",criteria:["新能力"]}),
+ N("sora","Sora","2024-02","video",["dit","vdm"],{major:true,kind:"release",source:"OpenAI",summary:"长时长、高一致性的文生视频，展示了 DiT 在视频上的扩展性。",criteria:["能力跃迁"]}),
+ // 音频
+ N("wavenet","WaveNet","2016-09","audio",[],{major:true,url:ax("1609.03499"),source:"DeepMind",summary:"自回归原始波形生成，语音合成自然度大幅提升。",criteria:["质量跃迁"]}),
+ N("audiolm","AudioLM","2022-09","audio",["wavenet","transformer"],{url:ax("2209.03143"),source:"Google",summary:"把音频离散成 token 用语言模型生成，语音和钢琴续写连贯。",criteria:["新范式"]}),
+ N("musiclm","MusicLM","2023-01","audio",["audiolm"],{url:ax("2301.11325"),source:"Google",summary:"由文本描述生成高保真音乐。",criteria:["新能力"]}),
+ // 多模态
+ N("clip","CLIP","2021-01","mm",["transformer"],{major:true,url:ax("2103.00020"),source:"OpenAI",summary:"图文对比学习，成为文生图和视觉语言模型的通用对齐桥梁。",criteria:["被广泛沿用"]}),
+ N("flamingo","Flamingo","2022-04","mm",["clip"],{url:ax("2204.14198"),source:"DeepMind",summary:"视觉语言模型，少样本即可完成图文任务。",criteria:["新能力"]}),
+ N("gemini","Gemini 1.0","2023-12","mm",["transformer"],{url:ax("2312.11805"),source:"Google",summary:"原生多模态训练的大模型系列。",criteria:["新范式"]}),
+ N("gpt4o","GPT-4o","2024-05-13","mm",["gpt4","clip"],{major:true,kind:"release",source:"OpenAI",summary:"文本、图像、音频端到端统一，实时语音对话。",criteria:["能力跃迁"]}),
+ // Agent
+ N("rag","RAG 检索增强生成","2020-05","agent",[],{major:true,url:ax("2005.11401"),source:"Lewis 等",summary:"生成时检索外部知识，减少幻觉、可接入私有数据。",criteria:["被广泛沿用"]}),
+ N("react","ReAct","2022-10","agent",["cot"],{major:true,url:ax("2210.03629"),source:"Yao 等",summary:"推理与行动交替进行，现代 Agent 循环的原型。",criteria:["新范式"]}),
+ N("toolformer","Toolformer","2023-02","agent",["gpt3"],{url:ax("2302.04761"),source:"Meta",summary:"模型自学何时调用 API 工具。",criteria:["新能力"]}),
+ N("mcp","Model Context Protocol","2024-11","agent",["react","toolformer"],{major:true,kind:"release",source:"Anthropic",url:"https://www.anthropic.com/news/model-context-protocol",summary:"连接模型与工具/数据源的开放协议，被多家厂商采用。",criteria:["标准化","大规模采用"]}),
+ // 效率
+ N("lora","LoRA","2021-06","serve",["transformer"],{major:true,url:ax("2106.09685"),source:"Hu 等",summary:"低秩适配，只训练极少参数即可微调大模型。",criteria:["被广泛沿用"]}),
+ N("flashattn","FlashAttention","2022-05","sw",["transformer"],{major:true,url:ax("2205.14135"),source:"Dao 等",summary:"IO 感知的精确注意力实现，显著提速省显存。",criteria:["被广泛沿用"]}),
+ N("specdec","投机解码","2022-11","serve",["transformer"],{url:ax("2211.17192"),source:"Leviathan 等",summary:"小模型起草、大模型验证，不改输出分布即可加速推理。",criteria:["被广泛沿用"]}),
+ N("qlora","QLoRA","2023-05","serve",["lora"],{url:ax("2305.14314"),source:"Dettmers 等",summary:"4-bit 量化 + LoRA，单卡可微调数十亿参数模型。",criteria:["门槛大降"]}),
+ N("dsv3","DeepSeek-V3","2024-12","llm-open",["switch","h800"],{url:ax("2412.19437"),source:"DeepSeek",summary:"671B 参数 MoE 模型。技术报告称在 2048 张 H800 上训练，总计约 278.8 万 GPU 小时。受出口管制的硬件条件，倒逼出 FP8 训练、通信优化等工程创新。",criteria:["开源生态","训练效率"]}),
+
+ // ===== L9 应用 =====
+ N("midjourney","Midjourney 公测","2022-07","consumer",["ddpm"],{kind:"release",source:"Midjourney",summary:"通过 Discord 提供的文生图服务，让大众第一次大规模用上图像生成。",criteria:["大规模采用"]}),
+ N("copilot","GitHub Copilot","2021-06","devent",["gpt3"],{major:true,kind:"release",source:"GitHub / OpenAI",summary:"IDE 里的代码补全助手，第一个被开发者大规模使用的生成式 AI 产品。",criteria:["大规模采用"]}),
+ N("m365","Microsoft 365 Copilot 商用","2023-11","devent",["gpt4"],{kind:"release",source:"Microsoft",summary:"生成式 AI 进入办公套件，企业级规模化付费部署的标志之一。",criteria:["企业采用"]}),
+ N("af3","AlphaFold 3","2024-05","science",["ddpm"],{major:true,kind:"release",source:"Google DeepMind / Isomorphic Labs",summary:"用扩散模型预测蛋白质与 DNA、RNA、小分子等的复合结构，生成式方法进入结构生物学核心。",criteria:["科学突破"]}),
+ N("rt2","RT-2 视觉-语言-动作模型","2023-07","embodied",["gpt4"],{url:ax("2307.15818"),source:"Google DeepMind",summary:"把机器人动作当作 token 让视觉语言模型直接输出，网络知识迁移到机器人控制。",criteria:["新范式"]}),
+ N("pi0","π0 通用机器人策略","2024-10","embodied",["rt2","flowmatch"],{major:true,url:ax("2410.24164"),source:"Physical Intelligence",summary:"视觉语言模型 + flow matching 动作生成，一个模型完成叠衣服、收拾桌子等多种灵巧操作。",criteria:["能力跃迁"]}),
+
+ // ===== L8 评测与服务 =====
+ N("mmlu","MMLU","2020-09","eval",[],{url:ax("2009.03300"),source:"Hendrycks 等",summary:"57 个学科的多选题基准，曾是衡量大模型知识水平的通用标尺。",criteria:["事实标准"]}),
+ N("humaneval","HumanEval","2021-07","eval",["mmlu"],{url:ax("2107.03374"),source:"OpenAI（Codex 论文）",summary:"按单元测试是否通过来评测代码生成。",criteria:["事实标准"]}),
+ N("arena","Chatbot Arena","2023-05","eval",[],{major:true,url:ax("2403.04132"),source:"LMSYS",summary:"让用户盲测两个模型的回答并投票，用 Elo 排名，从“考试分数”转向“人类偏好”。",criteria:["新评测范式"]}),
+ N("swebench","SWE-bench","2023-10","eval",["humaneval"],{url:ax("2310.06770"),source:"Jimenez 等",summary:"用真实 GitHub issue 评测模型修复代码库的能力，Agent 评测的代表。",criteria:["新评测范式"]}),
+ N("vllm","vLLM / PagedAttention","2023-09","serve",["llama"],{major:true,url:ax("2309.06180"),source:"Kwon 等",summary:"像操作系统分页一样管理 KV 缓存，推理吞吐大幅提升，成为开源推理服务的主流引擎。",criteria:["被广泛沿用"]}),
+
+ // ===== L6 数据 =====
+ N("imagenet","ImageNet","2009-06","data",[],{major:true,source:"Deng 等",summary:"千万级标注图像数据集，为深度学习的突破提供了“考场”和“燃料”。",criteria:["奠基性数据"]}),
+ N("thepile","The Pile","2020-12","data",[],{url:ax("2101.00027"),source:"EleutherAI",summary:"825GB 开放英文语料，开源大模型预训练的早期基础。",criteria:["开放数据"]}),
+ N("laion5b","LAION-5B","2022-03","data",["clip"],{url:ax("2210.08402"),source:"LAION",summary:"58 亿图文对的开放数据集，Stable Diffusion 等开源图像模型的训练数据来源。",criteria:["开放数据"]}),
+ N("chinchilla","Chinchilla 计算最优缩放","2022-03","data",["scaling"],{major:true,url:ax("2203.15556"),source:"DeepMind",summary:"发现给定算力下参数量和训练 token 数应同比例扩大，此前的大模型普遍“数据不足”。数据量从此成为核心变量。",criteria:["改变研发方向"]}),
+ N("datawall","高质量文本会被用完吗","2022-10","data",["chinchilla"],{kind:"constraint",url:ax("2211.04325"),source:"Epoch AI（Villalobos 等）",summary:"估计按当前趋势，高质量公开文本数据将在数年内被耗尽，即“数据墙”问题。",criteria:["数据约束"]}),
+ N("selfinstruct","Self-Instruct","2022-12","data",["gpt3"],{url:ax("2212.10560"),source:"Wang 等",summary:"让模型自己生成指令数据来微调自己，合成数据路线的起点之一。",criteria:["新方法"]}),
+ N("phi1","Textbooks Are All You Need（phi-1）","2023-06","data",["selfinstruct"],{url:ax("2306.11644"),source:"Microsoft",summary:"用“教科书质量”的合成数据训练小模型，代码能力超过大得多的模型，说明数据质量可以替代规模。",criteria:["数据质量"]}),
+ N("nyt","《纽约时报》起诉 OpenAI 与微软","2023-12","data",[],{kind:"constraint",tags:["policy"],source:"多方报道",summary:"指控未经授权使用其文章训练模型，训练数据的版权与授权问题进入诉讼阶段。",criteria:["法律约束"]}),
+ N("fineweb","FineWeb","2024-06","data",["thepile"],{url:ax("2406.17557"),source:"Hugging Face",summary:"15 万亿 token 的开放网页语料，公开了完整的清洗与去重流程。",criteria:["开放数据"]}),
+
+ // ===== L5 系统软件 =====
+ N("tensorflow","TensorFlow 开源","2015-11","sw",["cuda"],{kind:"release",source:"Google",summary:"工业级深度学习框架开源，深度学习工程化普及。",criteria:["大规模采用"]}),
+ N("pytorch","PyTorch 发布","2017-01","sw",["cuda"],{major:true,kind:"release",source:"Meta（Facebook）",summary:"动态图、Python 优先的框架，后来成为研究和大模型训练的事实标准。",criteria:["事实标准"]}),
+ N("mixedprec","混合精度训练","2017-10","sw",["v100"],{url:ax("1710.03740"),source:"NVIDIA / Baidu",summary:"用 FP16 计算、FP32 保存权重，训练速度和显存效率大幅提升，配合 Tensor Core 使用。",criteria:["被广泛沿用"]}),
+ N("megatron","Megatron-LM 张量并行","2019-09","sw",["transformer","pytorch"],{url:ax("1909.08053"),source:"NVIDIA",summary:"把单层矩阵切到多张 GPU 上，训练超出单卡显存的大模型。",criteria:["使能大规模训练"]}),
+ N("zero","ZeRO / DeepSpeed","2019-10","sw",["pytorch"],{url:ax("1910.02054"),source:"Microsoft",summary:"把优化器状态、梯度、参数分片到各卡，消除数据并行的显存冗余。",criteria:["使能大规模训练"]}),
+ N("triton","OpenAI Triton","2021-07","sw",["cuda"],{kind:"release",source:"OpenAI",summary:"用 Python 写高性能 GPU 内核，降低了绕开手写 CUDA 的门槛。",criteria:["新工具"]}),
+
+ // ===== 地下：基础设施与集群 =====
+ N("dgx1","DGX-1 深度学习服务器","2016-04","chip",["p100"],{kind:"release",source:"NVIDIA",summary:"8 卡 NVLink 互联的一体化深度学习服务器，把“GPU 集群”产品化。",criteria:["新形态"]}),
+ N("mellanox","NVIDIA 收购 Mellanox","2019-03","infra",[],{tags:["capital"],kind:"event",source:"NVIDIA",summary:"InfiniBand 高速网络并入 GPU 厂商，集群互联成为 AI 算力的关键一环（2019 年宣布，2020 年完成）。",criteria:["产业格局"]}),
+ N("azuresc","Azure 为 OpenAI 建的超级计算机","2020-05","infra",["v100","mellanox"],{major:true,kind:"release",source:"Microsoft",summary:"万卡级 GPU 集群专为大模型训练而建。GPT-3 论文写明训练使用的是微软提供的 V100 集群。",criteria:["规模跃迁"]}),
+ N("colossus","xAI Colossus 十万卡集群","2024-09","infra",["h100"],{kind:"release",source:"xAI",summary:"约 10 万张 H100 的单一训练集群，标志着训练集群进入十万卡量级。",criteria:["规模跃迁"]}),
+ N("stargate","Stargate 计划","2025-01-21","infra",[],{tags:["capital"],kind:"event",source:"OpenAI 等",summary:"宣布未来数年投入最高 5000 亿美元建设 AI 数据中心，算力竞争进入国家级、千亿美元级。",criteria:["资本规模"]}),
+
+ // ===== 地下：芯片与硬件 =====
+ N("cuda","CUDA","2007-06","sw",[],{major:true,kind:"release",source:"NVIDIA",summary:"让 GPU 可以做通用计算的编程平台，是之后整个深度学习软件栈的地基。",criteria:["奠基性"]}),
+ N("alexnet","GPU 训练深度网络（AlexNet）","2012-09","chip",["cuda","imagenet"],{major:true,source:"Krizhevsky 等",summary:"用两张消费级 GPU 训练的 CNN 赢下 ImageNet，证明了“GPU + 深度学习”的路线。",criteria:["范式确立"]}),
+ N("hbm","HBM 高带宽内存商用","2015-06","fab",[],{kind:"release",source:"AMD / SK hynix",summary:"把 DRAM 堆叠在芯片旁边，带宽远超传统显存，后来成为 AI 加速器的标配。",criteria:["新技术"]}),
+ N("p100","P100：NVLink + HBM2","2016-04","chip",["cuda","hbm","cowos"],{major:true,kind:"release",source:"NVIDIA",summary:"首款数据中心 GPU 同时用上 NVLink 互联、HBM2 和 CoWoS 封装。Transformer 原论文就是在 8 张 P100 上训练的。",criteria:["架构跃迁"]}),
+ N("tpu","Google TPU","2016-05","chip-asic",[],{kind:"release",source:"Google",summary:"专用 AI 芯片（ASIC）路线的代表，证明了 GPU 之外的另一条路。",criteria:["新路线"]}),
+ N("v100","V100 Tensor Core","2017-05","chip",["p100"],{major:true,kind:"release",source:"NVIDIA",summary:"引入专门做矩阵乘的 Tensor Core，深度学习训练吞吐大幅提升。",criteria:["架构跃迁"]}),
+ N("a100","A100","2020-05","chip",["v100"],{kind:"release",source:"NVIDIA",summary:"支持 TF32 / 稀疏加速，成为 2020–2023 年大模型训练的主力卡。",criteria:["大规模采用"]}),
+ N("h100","H100（Transformer Engine）","2022-03","chip",["a100"],{major:true,kind:"release",source:"NVIDIA",summary:"针对 Transformer 加入 FP8 支持，成为生成式 AI 爆发期最紧缺的硬件。",criteria:["架构跃迁"]}),
+ N("export22","美国对华先进芯片出口管制","2022-10-07","chip",[],{tags:["policy"],major:true,kind:"constraint",source:"美国商务部",summary:"限制向中国出口高端 AI 芯片和制造设备，此后多次加码。直接改变了全球算力的分布。",criteria:["政策约束"]}),
+ N("h800","H800（合规降规格版）","2023-03","chip",["h100","export22"],{tags:["policy"],kind:"release",source:"NVIDIA",summary:"为符合出口规则而降低互联带宽的 H100 版本，后来也被纳入管制。",criteria:["约束的产物"]}),
+ N("blackwell","Blackwell / GB200 NVL72","2024-03","chip",["h100"],{kind:"release",source:"NVIDIA",summary:"72 卡整机柜互联、液冷，算力单位从“一张卡”变成“一个机柜”。",criteria:["架构跃迁"]}),
+ N("hbmshort","HBM 产能售罄","2024-05","fab",["hbm"],{kind:"constraint",source:"SK hynix 等",summary:"主要厂商表示 2024 年及 2025 年大部分 HBM 产能已被订满，内存成为算力瓶颈之一。",criteria:["供应约束"]}),
+
+ // ===== 地下：半导体制造 =====
+ N("cowos","CoWoS 先进封装","2012","fab",[],{kind:"release",source:"TSMC",summary:"把计算芯片和 HBM 并排封装在硅中介层上，是现代 AI 加速器能做出来的前提。",criteria:["关键工艺"]}),
+ N("euv","EUV 光刻量产","2019-10","fab",[],{major:true,kind:"release",source:"ASML / TSMC",summary:"极紫外光刻进入大规模量产，7nm 以下先进制程的基础。全球只有 ASML 能造 EUV 光刻机。",criteria:["关键工艺","单点依赖"]}),
+ N("cowosshort","CoWoS 产能瓶颈","2023","fab",["cowos"],{kind:"constraint",source:"TSMC",summary:"生成式 AI 需求爆发后，先进封装产能成为限制 GPU 出货的主要瓶颈之一，台积电持续扩产。",criteria:["供应约束"]}),
+
+ // ===== 地下：能源与电力 =====
+ N("dmcool","AI 优化数据中心制冷","2016-07","energy",[],{kind:"release",source:"Google DeepMind",summary:"用机器学习调控谷歌数据中心的冷却系统，冷却能耗显著下降。AI 反过来优化自身基础设施的早期例子。",criteria:["能效"]}),
+ N("sgpause","新加坡解除数据中心暂停令","2022-01","energy",[],{tags:["policy"],kind:"constraint",source:"新加坡贸工部",summary:"新加坡因电力和土地限制，2019 年起暂停新建数据中心；2022 年 1 月宣布解除，但新项目须满足严格的能效条件。电力约束直接限制算力落地的早期案例。",criteria:["政策约束","电力约束"]}),
+ N("tmi","三哩岛核电站重启协议","2024-09-20","energy",[],{tags:["capital"],major:true,kind:"event",source:"Microsoft / Constellation",summary:"微软签 20 年购电协议，支持重启已关闭的三哩岛 1 号机组，为数据中心供电。科技公司开始直接介入发电侧。",criteria:["能源结构"]}),
+ N("smr","科技公司签约小型模块化核反应堆","2024-10-14","energy",["tmi"],{tags:["capital"],kind:"event",source:"Google / Kairos、Amazon / X-energy",summary:"谷歌和亚马逊相继签约 SMR 项目，目标在 2030 年前后上线。",criteria:["能源结构"]}),
+ N("iea25","IEA《能源与 AI》报告","2025-04-10","energy",[],{major:true,kind:"constraint",source:"IEA",url:"https://www.iea.org/reports/energy-and-ai",summary:"2024 年数据中心用电约 415 TWh（全球约 1.5%），预计 2030 年翻倍到约 945 TWh。电力成为 AI 扩张的硬约束。",criteria:["电力约束"]}),
+
+ // ===== 地下：矿产与材料 =====
+ N("neon","乌克兰战争冲击氖气供应","2022-03","mineral",[],{kind:"constraint",source:"多方报道",summary:"乌克兰是半导体级氖气（光刻激光器用）的重要产地，战争导致供应中断、价格暴涨。",criteria:["供应约束"]}),
+ N("gage","中国对镓、锗实施出口管制","2023-07","mineral",[],{tags:["policy"],kind:"constraint",source:"中国商务部",summary:"镓、锗用于化合物半导体、光电器件等，中国是主要产出国。2023 年 7 月宣布、8 月起实施出口许可。",criteria:["供应约束","政策约束"]}),
+ N("sprucepine","飓风海伦停摆 Spruce Pine 高纯石英","2024-09","mineral",[],{major:true,kind:"constraint",source:"AP 等",summary:"美国北卡小镇 Spruce Pine 供应全球大部分高纯石英，用来做拉制单晶硅的坩埚。飓风导致两家矿企停产，暴露了芯片供应链的单点依赖。",criteria:["单点依赖"]}),
+ N("ree25","中国对七种中重稀土实施出口管制","2025-04-04","mineral",[],{tags:["policy"],kind:"constraint",source:"中国商务部 / 海关总署",summary:"钐、钆、铽、镝、镥、钪、钇纳入出口许可管理。中国约占全球稀土精炼的九成。",criteria:["供应约束","政策约束"]}),
+
+ // ===== 细分子分支（缩放到最细一级才出现） =====
+ N("llama2","Llama 2","2023-07-18","llm-open",["llama"],{level:3,kind:"release",source:"Meta",summary:"允许商用的开放权重模型，开源模型进入企业应用。",criteria:["开源生态"]}),
+ N("llama4","Llama 4","2025-04-05","llm-open",["llama2","switch"],{level:3,kind:"release",source:"Meta",summary:"Meta 首个 MoE 架构的 Llama 系列，原生多模态。",criteria:["开源生态"]}),
+ N("qwen3","Qwen3","2025-04-29","llm-open",[],{level:3,kind:"release",source:"阿里巴巴",summary:"从 0.6B 到 235B MoE 的开放权重家族，同一模型可切换思考/非思考模式。",criteria:["开源生态"]}),
+ N("gptoss","gpt-oss","2025-08-05","llm-open",["o1"],{level:3,kind:"release",source:"OpenAI",summary:"OpenAI 自 GPT-2 以来首次发布开放权重模型（120B / 20B 推理模型）。",criteria:["开源生态"]}),
+ N("rope","RoPE 旋转位置编码","2021-04","llm-ctx",["transformer"],{level:3,url:ax("2104.09864"),source:"Su 等",summary:"用旋转矩阵编码相对位置，后来成为开源大模型的标准位置编码，也是长上下文外推的基础。",criteria:["被广泛沿用"]}),
+ N("claude100k","10 万 token 上下文","2023-05-11","llm-ctx",[],{level:3,kind:"release",source:"Anthropic",summary:"商用模型上下文窗口从数千 token 跃升到 10 万，可一次读完一本书。",criteria:["能力跃迁"]}),
+ N("gemini15","Gemini 1.5：百万 token 上下文","2024-02-15","llm-ctx",["gemini","rope"],{level:3,url:ax("2403.05530"),source:"Google",summary:"上下文窗口达到 100 万 token 量级，可直接处理长视频和整个代码库。",criteria:["能力跃迁"]}),
+ N("tot","Tree of Thoughts","2023-05","reason-tts",["cot"],{level:3,url:ax("2305.10601"),source:"Yao 等",summary:"把推理组织成可回溯的树搜索，而非单条思维链。",criteria:["新方法"]}),
+ N("ttscale","推理时算力扩展","2024-08","reason-tts",["selfcons"],{level:3,url:ax("2408.03314"),source:"Snell 等",summary:"系统研究了推理时多花算力能否替代更大的模型：在部分任务上，推理时算力比参数更划算。",criteria:["改变研发方向"]}),
+ N("o3","OpenAI o3","2025-04-16","reason-tts",["o1"],{level:3,kind:"release",source:"OpenAI",summary:"推理模型开始在推理过程中自主调用工具（搜索、代码、看图）。",criteria:["能力跃迁"]}),
+ N("imogold","IMO 金牌级数学推理","2025-07","reason-tts",["o1"],{level:2,kind:"event",source:"OpenAI、Google DeepMind",summary:"通用推理模型在国际数学奥林匹克题目上达到金牌分数线。",criteria:["能力里程碑"]}),
+ N("dreambooth","DreamBooth","2022-08","image-ctrl",["ddpm"],{level:3,url:ax("2208.12242"),source:"Google",summary:"用几张照片教会模型一个特定主体，个性化生成的开端。",criteria:["新能力"]}),
+ N("ip2p","InstructPix2Pix","2022-11","image-ctrl",["sd"],{level:3,url:ax("2211.09800"),source:"Brooks 等",summary:"用一句文字指令编辑图片。",criteria:["新能力"]}),
+ N("genie3","Genie 3 世界模型","2025-08-05","video-world",["dit"],{level:2,kind:"release",source:"Google DeepMind",summary:"根据文字实时生成可交互、可行走的 3D 环境，用于训练 Agent。",criteria:["新范式"]}),
+ N("cerebras","Cerebras 晶圆级芯片","2019-08","chip-asic",[],{level:3,kind:"release",source:"Cerebras",summary:"把整片晶圆做成一颗芯片，走与 GPU 完全不同的路线。",criteria:["新路线"]}),
+ N("trainium","AWS Trainium","2020-12","chip-asic",[],{level:3,kind:"release",source:"Amazon",summary:"云厂商自研训练芯片，减少对 GPU 的依赖。",criteria:["新路线"]}),
+ N("tpuv5p","TPU v5p","2023-12","chip-asic",["tpu"],{level:3,kind:"release",source:"Google",summary:"与 Gemini 同期发布的训练用 TPU，大规模 Pod 互联。",criteria:["架构迭代"]}),
+
+ // ===== 2025 下半年 – 2026（“现在”附近） =====
+ N("gpt5","GPT-5","2025-08-07","llm",["o1","gpt4o"],{major:true,kind:"release",source:"OpenAI",summary:"快速回答与深度推理合并成一个系统，自动路由，取代了此前多个模型的选择。",criteria:["能力跃迁","产品形态"]}),
+ N("sora2","Sora 2","2025-09-30","video",["sora"],{level:2,kind:"release",source:"OpenAI",summary:"带同步音频的视频生成，并以社交 App 形式发布。",criteria:["能力跃迁"]}),
+ N("gemini3","Gemini 3 Pro","2025-11","llm",["gemini"],{level:3,kind:"release",source:"Google",summary:"Google 新一代旗舰模型，多项基准领先。",criteria:["能力跃迁"]}),
+ N("opus45","Claude Opus 4.5","2025-11-25","llm",[],{level:3,kind:"release",source:"Anthropic",summary:"Anthropic 旗舰模型更新，侧重编程与 Agent 任务。",criteria:["能力跃迁"]}),
+ N("fable5","Claude Fable 5 / Mythos 5","2026-06-09","llm",[],{level:2,kind:"release",source:"Anthropic",summary:"Anthropic 首批 Mythos 级模型发布。",criteria:["能力跃迁"]}),
+ N("fablepause","出口管制致模型访问暂停","2026-06-12","llm",["fable5","export22"],{level:2,kind:"constraint",tags:["policy"],source:"Anthropic",url:"https://www.anthropic.com/news/fable-mythos-access",summary:"为遵守美国商务部出口管制，Anthropic 暂停了 Fable 5 和 Mythos 5 的访问；管制于 6 月 30 日解除，7 月 1 日恢复访问。出口管制第一次直接作用到模型访问层面。",criteria:["政策约束"]}),
+ N("rubin","Vera Rubin 量产出货","2026-07-21","chip",["blackwell","hbm"],{major:true,kind:"release",source:"NVIDIA",summary:"CES 2026 发布的六芯片平台（Vera CPU、Rubin GPU、NVLink 6 等），采用 HBM4；7 月确认全面量产并开始向云厂商出货。",criteria:["架构跃迁"]}),
+ N("nvchina","美财长要求英伟达说明先进芯片流入中国","2026-11-15","chip",["export22"],{level:3,kind:"constraint",tags:["policy"],source:"AFP",summary:"美国财政部长公开要求英伟达解释其最先进的 AI 芯片是否被明知流入中国。出口管制执行仍在持续收紧。",criteria:["政策约束"]}),
+ N("softbank","SoftBank 俄亥俄 10GW 园区","2026-03","infra-gw",["stargate"],{level:2,kind:"event",tags:["capital"],source:"SoftBank / SB Energy",summary:"在原朴茨茅斯气体扩散厂旧址规划 10GW AI 园区，配套近等量的天然气发电；OpenAI 签约约 8GW、20 年租约。",criteria:["规模跃迁"]}),
+ N("paducah","Paducah 能源枢纽","2026-07","infra-gw",[],{level:3,kind:"event",tags:["capital"],source:"Reuters",summary:"由 NextEra 和 Brookfield 牵头，最高 1000 亿美元投资，建设 1.8GW 数据中心并配套 4.6GW 专用电源与储能。",criteria:["电力配套"]}),
+ N("gw2026","首批吉瓦级 AI 数据中心投运","2026","infra",["colossus"],{major:true,kind:"event",source:"Epoch AI",summary:"预计 2026 年有 5 座 1GW 以上的数据中心上线，分属不同云厂商，单个园区耗电相当于一座核反应堆。",criteria:["规模跃迁"]}),
+ N("reeoct","中国扩大稀土管制（含域外条款）","2025-10-09","mineral",["ree25"],{level:2,kind:"constraint",tags:["policy"],source:"中国商务部",summary:"新增五种稀土及相关设备、技术，并对含少量中国来源稀土的境外产品提出许可要求。",criteria:["政策约束"]}),
+ N("reepause","十月新规暂停一年","2025-11-07","mineral",["reeoct"],{level:3,kind:"event",tags:["policy"],source:"中国商务部",summary:"中美贸易休战后，十月新规暂停至 2026-11-10；四月对七种中重稀土的管制仍然有效。",criteria:["政策变化"]}),
+ N("reeext","稀土管制暂停期延长至 2027-01","2026-11-09","mineral",["reepause"],{level:2,kind:"constraint",tags:["policy"],source:"S&P Global",summary:"原定 11 月 10 日到期的暂停被延长到 2027-01-10。七种中重稀土的出口管制继续有效。",criteria:["政策约束"]}),
+ N("reeexpire","稀土暂停期届满（计划）","2027-01-10","mineral",["reeext"],{level:2,kind:"upcoming",tags:["policy"],source:"中国商务部公告",summary:"若不再延长，十月新规将恢复执行。这是一个已知的未来节点，Agent 应在到期前后重点跟踪。",criteria:["待观察"]}),
+];
+NODES.forEach(n => { if (!n.level) n.level = n.major ? 1 : 2; if (n.level === 1) n.major = true; });
+/* ===== English content (merged into each node as node.en = {title, summary}) ===== */
+const EN_NODES = {
+ vae:["VAE (Variational Autoencoder)","Trains latent-variable generative models with variational inference; later became the compressor behind latent diffusion."],
+ gan:["GAN (Generative Adversarial Network)","A generator and a discriminator trained against each other, opening an era of high-quality image generation."],
+ ddpm:["DDPM (Denoising Diffusion)","Turned diffusion into a practical image generator that matched and then beat GANs; now the dominant paradigm for image and video."],
+ cfg:["Classifier-Free Guidance","Conditional guidance without a separate classifier; used by almost every text-to-image model."],
+ flowmatch:["Flow Matching","Trains continuous flow models by regressing a velocity field; a training objective of many new image and video models."],
+ transformer:["Transformer","The pure-attention architecture: common ancestor of nearly all modern generative models."],
+ scaling:["Scaling Laws","Loss falls as a power law in parameters, data and compute; this pushed the field toward large models."],
+ switch:["Switch Transformer (MoE)","Sparse mixture-of-experts decouples parameter count from per-token compute."],
+ mamba:["Mamba (State Space Model)","Selective state-space model with linear cost in sequence length; a competing route to the Transformer."],
+ gpt1:["GPT-1","Generative pre-training plus fine-tuning showed that pre-train-then-transfer works."],
+ gpt2:["GPT-2","At larger scale, zero-shot generation ability clearly emerged."],
+ gpt3:["GPT-3","175B parameters; demonstrated few-shot in-context learning."],
+ chatgpt:["ChatGPT","The chat product brought generative AI to the general public."],
+ llama:["LLaMA","High-quality open-weight models that kicked off the open LLM ecosystem."],
+ gpt4:["GPT-4","Large gains on professional exams and benchmarks; accepts image input."],
+ mixtral:["Mixtral 8x7B","An open-weight MoE model that popularised sparse experts in open source."],
+ rlhf:["Deep RL from Human Preferences","Learns a reward function from human comparisons: the origin of RLHF."],
+ instructgpt:["InstructGPT / RLHF","Applied RLHF to language models; a small aligned model beat a much larger base model at following instructions."],
+ cai:["Constitutional AI","A set of principles lets the model critique and revise itself, reducing reliance on human labels (RLAIF)."],
+ dpo:["DPO (Direct Preference Optimization)","Optimises the policy directly on preference data without a reward model, greatly simplifying alignment."],
+ cot:["Chain-of-Thought","Having the model write intermediate steps sharply improves math and logic performance."],
+ selfcons:["Self-Consistency","Sample several reasoning paths and vote, further improving accuracy."],
+ grpo:["GRPO (DeepSeekMath)","Group-relative policy optimisation drops the value network; later a standard RL algorithm for reasoning models."],
+ o1:["OpenAI o1","Long chains of thought trained with RL: more inference-time compute, better results."],
+ r1:["DeepSeek-R1","An open-weight reasoning model that published how pure RL can elicit reasoning."],
+ stylegan:["StyleGAN","Style-based generator; high-resolution faces became indistinguishable from photos."],
+ dalle:["DALL·E","The first large text-to-image model to draw wide attention."],
+ ldm:["Latent Diffusion (LDM)","Diffusion in a VAE-compressed latent space cuts compute dramatically; the basis of Stable Diffusion."],
+ dalle2:["DALL·E 2","CLIP latents plus a diffusion decoder: a big jump in text-to-image quality."],
+ sd:["Stable Diffusion","Open-weight text-to-image model that runs on consumer GPUs and ignited a community ecosystem."],
+ dit:["DiT (Diffusion Transformer)","Replaces the U-Net with a Transformer backbone for better scaling; later adopted by video models."],
+ controlnet:["ControlNet","Precise structural control of generation using edges, poses and other conditions."],
+ vdm:["Video Diffusion Models","Extended diffusion models to video generation."],
+ sora:["Sora","Long, highly consistent text-to-video, showing DiT scales to video."],
+ wavenet:["WaveNet","Autoregressive raw-waveform generation; a big leap in speech naturalness."],
+ audiolm:["AudioLM","Discretises audio into tokens and generates with a language model; coherent speech and piano continuation."],
+ musiclm:["MusicLM","Generates high-fidelity music from text descriptions."],
+ clip:["CLIP","Contrastive image-text learning; the common alignment bridge for text-to-image and vision-language models."],
+ flamingo:["Flamingo","A vision-language model that handles image-text tasks from a few examples."],
+ gemini:["Gemini 1.0","Model family trained natively multimodal."],
+ gpt4o:["GPT-4o","Text, image and audio unified end to end; real-time voice conversation."],
+ rag:["RAG (Retrieval-Augmented Generation)","Retrieves external knowledge at generation time, reducing hallucination and connecting private data."],
+ react:["ReAct","Interleaves reasoning and acting: the prototype of the modern agent loop."],
+ toolformer:["Toolformer","The model teaches itself when to call API tools."],
+ mcp:["Model Context Protocol","An open protocol connecting models to tools and data sources, adopted by many vendors."],
+ lora:["LoRA","Low-rank adaptation: fine-tune large models by training very few parameters."],
+ flashattn:["FlashAttention","IO-aware exact attention; much faster and lighter on memory."],
+ specdec:["Speculative Decoding","A small model drafts and a large model verifies, speeding inference without changing outputs."],
+ qlora:["QLoRA","4-bit quantisation plus LoRA: fine-tune multi-billion-parameter models on a single GPU."],
+ dsv3:["DeepSeek-V3","671B-parameter MoE. The report says it trained on 2,048 H800s for about 2.788M GPU hours; export-controlled hardware pushed innovations such as FP8 training and communication optimisation."],
+ midjourney:["Midjourney Open Beta","Text-to-image via Discord; the first time the public used image generation at scale."],
+ copilot:["GitHub Copilot","Code completion in the IDE; the first generative AI product used by developers at scale."],
+ m365:["Microsoft 365 Copilot GA","Generative AI enters the office suite; a marker of paid enterprise deployment at scale."],
+ af3:["AlphaFold 3","Uses diffusion to predict complexes of proteins with DNA, RNA and small molecules; generative methods reach the core of structural biology."],
+ rt2:["RT-2 Vision-Language-Action","Treats robot actions as tokens output directly by a vision-language model, transferring web knowledge to robot control."],
+ pi0:["π0 Generalist Robot Policy","A VLM plus flow-matching action generation; one model folds laundry, clears tables and more."],
+ mmlu:["MMLU","Multiple-choice benchmark across 57 subjects; long the standard yardstick of model knowledge."],
+ humaneval:["HumanEval","Evaluates code generation by whether unit tests pass."],
+ arena:["Chatbot Arena","Users blind-compare two models and vote, ranked by Elo: from exam scores to human preference."],
+ swebench:["SWE-bench","Evaluates fixing real GitHub issues in real codebases; a flagship agent benchmark."],
+ vllm:["vLLM / PagedAttention","Manages the KV cache like OS paging; much higher throughput, now the mainstream open-source serving engine."],
+ imagenet:["ImageNet","A labeled image dataset at the ten-million scale; the test bed and fuel for the deep learning breakthrough."],
+ thepile:["The Pile","825GB open English corpus; an early foundation for open LLM pre-training."],
+ laion5b:["LAION-5B","5.8 billion open image-text pairs; training data for Stable Diffusion and other open image models."],
+ chinchilla:["Chinchilla Compute-Optimal Scaling","For a fixed compute budget, parameters and training tokens should scale together; earlier models were under-trained on data. Data became a core variable."],
+ datawall:["Will We Run Out of Data?","Estimates that at current trends high-quality public text will be exhausted within years: the data wall."],
+ selfinstruct:["Self-Instruct","The model generates its own instruction data to fine-tune itself; an origin of the synthetic data route."],
+ phi1:["Textbooks Are All You Need (phi-1)","A small model trained on textbook-quality synthetic data beats far larger models at code: data quality can substitute for scale."],
+ nyt:["New York Times sues OpenAI and Microsoft","Alleges unauthorised use of its articles for training; training-data copyright enters litigation."],
+ fineweb:["FineWeb","15-trillion-token open web corpus with a fully published cleaning and deduplication pipeline."],
+ tensorflow:["TensorFlow Open-Sourced","An industrial-grade framework goes open source; deep learning engineering spreads."],
+ pytorch:["PyTorch Released","Dynamic graphs, Python first; became the de facto standard for research and LLM training."],
+ mixedprec:["Mixed-Precision Training","Compute in FP16 while keeping FP32 weights; big gains in speed and memory, paired with Tensor Cores."],
+ megatron:["Megatron-LM Tensor Parallelism","Splits each layer's matrices across GPUs to train models larger than one GPU's memory."],
+ zero:["ZeRO / DeepSpeed","Shards optimiser states, gradients and parameters across GPUs, removing data-parallel memory redundancy."],
+ triton:["OpenAI Triton","Write high-performance GPU kernels in Python, lowering the bar versus hand-written CUDA."],
+ dgx1:["DGX-1 Deep Learning Server","An integrated 8-GPU NVLink server that productised the GPU cluster."],
+ mellanox:["NVIDIA Acquires Mellanox","InfiniBand networking joins the GPU vendor; cluster interconnect becomes central to AI compute (announced 2019, closed 2020)."],
+ azuresc:["Azure Supercomputer for OpenAI","A 10,000-GPU-class cluster built for large-model training. The GPT-3 paper states it trained on a V100 cluster provided by Microsoft."],
+ colossus:["xAI Colossus (100k GPUs)","A single training cluster of about 100,000 H100s; training clusters reach the 100k scale."],
+ stargate:["Stargate Project","Announced up to $500B over several years for AI data centres; the compute race reaches national, hundred-billion scale."],
+ cuda:["CUDA","The platform that made GPUs programmable for general computing; the foundation of the entire deep learning software stack."],
+ alexnet:["GPUs Train Deep Nets (AlexNet)","A CNN trained on two consumer GPUs won ImageNet, proving the GPU + deep learning route."],
+ hbm:["HBM Enters Production","DRAM stacked beside the processor with far higher bandwidth; later standard on every AI accelerator."],
+ p100:["P100: NVLink + HBM2","First data-centre GPU with NVLink, HBM2 and CoWoS packaging together. The original Transformer was trained on 8 P100s."],
+ tpu:["Google TPU","The flagship of the custom AI chip (ASIC) route; proof there is a path beyond GPUs."],
+ v100:["V100 Tensor Core","Introduced Tensor Cores dedicated to matrix multiply; a big jump in training throughput."],
+ a100:["A100","TF32 and sparsity acceleration; the workhorse of large-model training in 2020–2023."],
+ h100:["H100 (Transformer Engine)","Added FP8 for Transformers; the scarcest hardware of the generative AI boom."],
+ export22:["US Export Controls on Advanced Chips to China","Restricted exports of high-end AI chips and chipmaking equipment to China, tightened several times since; reshaped the global distribution of compute."],
+ h800:["H800 (Export-Compliant Variant)","An H100 with reduced interconnect bandwidth to meet export rules; later also restricted."],
+ blackwell:["Blackwell / GB200 NVL72","72 GPUs linked as one liquid-cooled rack: the unit of compute shifts from a card to a rack."],
+ hbmshort:["HBM Sold Out","Major makers said HBM capacity for 2024 and most of 2025 was fully booked; memory became a compute bottleneck."],
+ cowos:["CoWoS Advanced Packaging","Places compute dies and HBM side by side on a silicon interposer; a prerequisite for modern AI accelerators."],
+ euv:["EUV Lithography in Volume Production","Extreme-ultraviolet lithography enters high-volume manufacturing, the basis of sub-7nm nodes. Only ASML builds EUV machines."],
+ cowosshort:["CoWoS Capacity Bottleneck","After the generative AI surge, advanced packaging capacity became a main limit on GPU shipments; TSMC keeps expanding."],
+ dmcool:["AI-Optimised Data Centre Cooling","Machine learning controls Google's data-centre cooling and cuts cooling energy substantially; an early case of AI optimising its own infrastructure."],
+ sgpause:["Singapore Lifts Data Centre Moratorium","Singapore paused new data centres from 2019 over power and land limits, and lifted it in January 2022 with strict efficiency conditions; an early case of power directly limiting compute."],
+ tmi:["Three Mile Island Restart Deal","Microsoft signed a 20-year power purchase agreement supporting the restart of Unit 1 to supply its data centres; tech firms step into power generation."],
+ smr:["Tech Firms Sign Small Modular Reactor Deals","Google and Amazon signed SMR deals targeting operation around 2030."],
+ iea25:["IEA 'Energy and AI' Report","Data centres used about 415 TWh in 2024 (about 1.5% of global electricity), projected to roughly double to about 945 TWh by 2030. Power becomes a hard constraint on AI growth."],
+ neon:["Ukraine War Disrupts Neon Supply","Ukraine is a key source of semiconductor-grade neon for lithography lasers; the war cut supply and spiked prices."],
+ gage:["China Export Controls on Gallium and Germanium","Used in compound semiconductors and optoelectronics, with China the main producer. Announced July 2023, licensing from August."],
+ sprucepine:["Hurricane Helene Halts Spruce Pine Quartz","Spruce Pine, North Carolina supplies most of the world's high-purity quartz for silicon-crystal crucibles. The storm shut two mines, exposing a single point of failure in the chip supply chain."],
+ ree25:["China Controls Seven Medium/Heavy Rare Earths","Samarium, gadolinium, terbium, dysprosium, lutetium, scandium and yttrium placed under export licensing. China does about 90% of global rare earth refining."],
+ llama2:["Llama 2","Open weights licensed for commercial use; open models enter enterprise applications."],
+ llama4:["Llama 4","Meta's first MoE Llama family, natively multimodal."],
+ qwen3:["Qwen3","An open-weight family from 0.6B to 235B MoE; one model can switch between thinking and non-thinking modes."],
+ gptoss:["gpt-oss","OpenAI's first open-weight models since GPT-2 (120B and 20B reasoning models)."],
+ rope:["RoPE (Rotary Position Embedding)","Encodes relative position with rotations; became the standard in open LLMs and the basis for context extension."],
+ claude100k:["100K-Token Context","Commercial context windows jump from thousands of tokens to 100K: a whole book in one go."],
+ gemini15:["Gemini 1.5: Million-Token Context","Context windows reach about one million tokens, handling long videos and whole codebases directly."],
+ tot:["Tree of Thoughts","Organises reasoning as a backtracking tree search rather than a single chain."],
+ ttscale:["Scaling Test-Time Compute","Systematically studied whether more inference compute can replace a bigger model: on some tasks it is the better trade."],
+ o3:["OpenAI o3","Reasoning models begin calling tools (search, code, vision) on their own while reasoning."],
+ imogold:["IMO Gold-Level Math Reasoning","General reasoning models reach the gold-medal score on International Mathematical Olympiad problems."],
+ dreambooth:["DreamBooth","Teaches a model a specific subject from a few photos: the start of personalised generation."],
+ ip2p:["InstructPix2Pix","Edit an image with a single text instruction."],
+ genie3:["Genie 3 World Model","Generates interactive, walkable 3D environments from text in real time, for training agents."],
+ cerebras:["Cerebras Wafer-Scale Engine","An entire wafer as one chip; a route entirely different from GPUs."],
+ trainium:["AWS Trainium","A cloud provider's in-house training chip, reducing dependence on GPUs."],
+ tpuv5p:["TPU v5p","Training TPU released alongside Gemini, with large-scale pod interconnect."],
+ gpt5:["GPT-5","Fast answers and deep reasoning merged into one auto-routing system, replacing the choice among several models."],
+ sora2:["Sora 2","Video generation with synchronised audio, launched as a social app."],
+ gemini3:["Gemini 3 Pro","Google's next flagship model, leading on many benchmarks."],
+ opus45:["Claude Opus 4.5","Anthropic flagship update focused on coding and agent tasks."],
+ fable5:["Claude Fable 5 / Mythos 5","Anthropic's first Mythos-class models are released."],
+ fablepause:["Export Controls Pause Model Access","To comply with US Department of Commerce export controls, Anthropic suspended access to Fable 5 and Mythos 5; the controls were lifted on June 30 and access was restored on July 1. The first time export controls acted directly on model access."],
+ rubin:["Vera Rubin Ships in Volume","The six-chip platform unveiled at CES 2026 (Vera CPU, Rubin GPU, NVLink 6 and more) with HBM4; confirmed in full production and shipping to cloud providers in July."],
+ nvchina:["US Treasury Asks Nvidia About Chips Reaching China","The US Treasury Secretary publicly asked Nvidia to explain whether its most advanced AI chips knowingly reached China. Enforcement of export controls keeps tightening."],
+ softbank:["SoftBank 10GW Ohio Campus","A 10GW AI campus planned on the former Portsmouth Gaseous Diffusion Plant site with nearly matching gas generation; OpenAI signed a 20-year lease for about 8GW."],
+ paducah:["Paducah Energy Hub","Led by NextEra and Brookfield, up to $100B to build a 1.8GW data centre with 4.6GW of dedicated power and storage."],
+ gw2026:["First Gigawatt-Scale AI Data Centres","Five data centres above 1GW are expected online in 2026, each run by a different hyperscaler; each draws as much power as a nuclear reactor."],
+ reeoct:["China Expands Rare Earth Controls (Extraterritorial)","Five more rare earths plus equipment and technology, and licensing for foreign products containing small amounts of Chinese-origin rare earths."],
+ reepause:["October Rules Suspended for a Year","After the US-China trade truce, the October rules were suspended until 2026-11-10; the April controls on seven elements stayed in force."],
+ reeext:["Rare Earth Suspension Extended to 2027-01","The suspension due to end on Nov 10 was extended to 2027-01-10. Controls on the seven medium/heavy rare earths remain in force."],
+ reeexpire:["Rare Earth Suspension Ends (Scheduled)","Unless extended again, the October rules resume. A known future node the agent should track closely around the deadline."],
+};
+const EN_REASON = {
+ flowmatch:"Several recent image and video model reports adopt this training objective. Suggest placing it under Generative Paradigms with DDPM as parent.",
+ mamba:"Representative of a new architecture route, but adoption in mainstream generative models is unconfirmed; the parent link (Transformer) is competition rather than inheritance and needs human judgement.",
+};
+const EN_NAMES = {
+ value:["Value Zone","Applications, model services and tools"], intel:["Intelligence Zone","Foundation models and data"],
+ compute:["Compute Zone","System software, data centres, chips"], physical:["Physical Zone","Semiconductor manufacturing, energy, minerals"],
+ L9:"Applications", L8:"Model Services & Tools", L7:"Foundation Models", L6:"Data", L5:"System Software", L4:"Data Centres & Cloud",
+ L3:"Chips & Systems", L2:"Semiconductor Manufacturing", L1:"Energy & Power", L0:"Minerals & Materials",
+ consumer:"Consumer Products", devent:"Developers & Enterprise", science:"Scientific Discovery", embodied:"Embodied AI",
+ agent:"Agents & Tools", serve:"Fine-tuning & Serving", eval:"Benchmarks",
+ found:"Generative Paradigms", arch:"Architectures", llm:"Language Models", "llm-open":"Open Weights", "llm-ctx":"Long Context",
+ align:"Alignment & Post-training", reason:"Reasoning", "reason-tts":"Test-Time Scaling", image:"Image Generation", "image-ctrl":"Control & Editing",
+ video:"Video Generation", "video-world":"World Models", audio:"Audio & Speech", mm:"Multimodal",
+ data:"Corpora, Data Laws & Limits", sw:"Training & Compute Software", infra:"Data Centres & Clusters", "infra-gw":"Gigawatt Campuses",
+ chip:"Chips & Systems", "chip-asic":"Custom ASICs", fab:"Fabrication, Packaging & Memory", energy:"Energy & Power", mineral:"Minerals & Materials",
+ policy:"Policy & Regulation", capital:"Capital", safety:"Safety & Alignment",
+};
+const EN_CRIT = {"事实标准":"De facto standard","产业格局":"Industry structure","产品形态":"Product form","企业采用":"Enterprise adoption","使能大规模训练":"Enables large-scale training",
+ "供应约束":"Supply constraint","关键工艺":"Key process","单点依赖":"Single point of failure","基准提升":"Benchmark gain","大规模采用":"Mass adoption","奠基性":"Foundational",
+ "奠基性数据":"Foundational data","奠基性架构":"Foundational architecture","开放数据":"Open data","开源生态":"Open ecosystem","待观察":"To watch","改变研发方向":"Changed research direction",
+ "政策变化":"Policy change","政策约束":"Policy constraint","数据约束":"Data constraint","数据质量":"Data quality","新工具":"New tool","新形态":"New form","新技术":"New technology",
+ "新方法":"New method","新架构":"New architecture","新架构变体":"Architecture variant","新能力":"New capability","新范式":"New paradigm","新训练目标":"New training objective",
+ "新评测范式":"New evaluation paradigm","新路线":"New route","方法公开":"Method published","方法被广泛沿用":"Widely adopted method","架构跃迁":"Architecture leap","架构迭代":"Architecture iteration",
+ "标准化":"Standardisation","法律约束":"Legal constraint","电力约束":"Power constraint","电力配套":"Dedicated power","科学突破":"Scientific breakthrough","约束的产物":"Product of a constraint",
+ "能力跃迁":"Capability leap","能力里程碑":"Capability milestone","能效":"Energy efficiency","能源结构":"Energy mix","范式确立":"Paradigm established","被广泛沿用":"Widely adopted",
+ "规模跃迁":"Scale leap","训练效率":"Training efficiency","质量 SOTA":"Quality SOTA","质量跃迁":"Quality leap","资本规模":"Capital scale","门槛大降":"Barrier lowered"};
+const EN_SRC = {"多方报道":"Multiple reports","中国商务部":"China MOFCOM","中国商务部 / 海关总署":"China MOFCOM / Customs","中国商务部公告":"China MOFCOM notice","美国商务部":"US Dept. of Commerce",
+ "新加坡贸工部":"Singapore MTI","阿里巴巴":"Alibaba","OpenAI、Google DeepMind":"OpenAI, Google DeepMind","Google / Kairos、Amazon / X-energy":"Google / Kairos, Amazon / X-energy",
+ "Meta（Facebook）":"Meta (Facebook)","OpenAI（Codex 论文）":"OpenAI (Codex paper)","Epoch AI（Villalobos 等）":"Epoch AI (Villalobos et al.)","AP 等":"AP et al.",
+ "SK hynix 等":"SK hynix et al.","Stability AI 等":"Stability AI et al.","OpenAI 等":"OpenAI et al."};
+const enSource = s => EN_SRC[s] || s.replace(/ 等$/, " et al.");
+
+/* ===== 中英双语 ===== */
+let lang = "zh";
+try { const h = location.hash.slice(1); if (h === "en" || h === "zh") lang = h; else { const v = localStorage.getItem("gt-lang"); if (v === "en" || v === "zh") lang = v; } } catch (e) {}
+const L = (zh, en) => lang === "en" ? en : zh;
+NODES.forEach(n => { const e = EN_NODES[n.id]; if (e) { n.en = {title: e[0], summary: e[1]}; if (EN_REASON[n.id]) n.en.agent_reason = EN_REASON[n.id]; } });
+const T = n => lang === "en" && n.en ? n.en.title : n.title;
+const SUM = n => lang === "en" && n.en ? n.en.summary : n.summary;
+const REASON = n => lang === "en" && n.en && n.en.agent_reason ? n.en.agent_reason : n.agent_reason;
+const nm = o => { if (lang !== "en") return o.name; const e = EN_NAMES[o.id]; return Array.isArray(e) ? e[0] : (e || o.name); };
+const zdesc = z => lang === "en" ? EN_NAMES[z.id][1] : z.desc;
+const CR = c => L(c, EN_CRIT[c] || c);
+const SRC = s => L(s, enSource(s));
+const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+/* ===== 时间：真实时钟 + 两种时间比例 ===== */
+const T0 = 2006, X0 = 260, TRUNK_X = 150, TOP = 120;
+const TAU = 8, CLOG = 700, PXM = 9, PXF = 30;     // 聚焦模式：越接近现在，每个月占的宽度越大
+let timeMode = "focus";
+const toM = d => { const p = d.split("-").map(Number);
+  return (p[0] - T0) * 12 + ((p[1] || 7) - 1) + ((p[2] || (p[1] ? 15 : 1)) - 1) / 30.5; };
+const dateToM = dt => (dt.getFullYear() - T0) * 12 + dt.getMonth() + (dt.getDate() - 1 + dt.getHours() / 24 + dt.getMinutes() / 1440) / 30.5;
+let NOW = new Date(), NOWM = dateToM(NOW);
+function xOf(m){
+  if (timeMode === "linear") return X0 + m * PXM;
+  const xnow = X0 + CLOG * Math.log(1 + NOWM / TAU);
+  if (m >= NOWM) return xnow + (m - NOWM) * PXF;
+  return xnow - CLOG * Math.log(1 + (NOWM - m) / TAU);
+}
+function mOf(x){
+  if (timeMode === "linear") return (x - X0) / PXM;
+  const xnow = X0 + CLOG * Math.log(1 + NOWM / TAU);
+  if (x >= xnow) return NOWM + (x - xnow) / PXF;
+  return NOWM - TAU * (Math.exp((xnow - x) / CLOG) - 1);
+}
+const tx = d => xOf(toM(d));
+const pad = v => String(v).padStart(2, "0");
+const fmtNow = () => `${NOW.getFullYear()}-${pad(NOW.getMonth() + 1)}-${pad(NOW.getDate())} ${pad(NOW.getHours())}:${pad(NOW.getMinutes())}`;
+function relDays(n){ const d = Math.round((toM(n.date) - NOWM) * 30.5), mo = Math.round(-d / 30.5), yr = Math.round(-d / 365);
+  if (d > 0) return L(`${d} 天后`, `in ${d} days`);
+  if (d === 0) return L("今天", "today");
+  if (-d < 60) return L(`${-d} 天前`, `${-d} days ago`);
+  if (-d < 730) return L(`${mo} 个月前`, `${mo} months ago`);
+  return L(`${yr} 年前`, `${yr} years ago`); }
+
+/* ===== 语义缩放：3 级细节 ===== */
+const LOD_NAMES = () => L(["概览：4 大区，只显示里程碑", "分层：10 层与分支", "细分：子分支与细节节点"], ["Overview: 4 zones, milestones only", "Layers: 10 layers and branches", "Detail: sub-branches and detail nodes"]);
+const S = [2.0, 1.5, 1.0];            // 每一级的文字放大系数（缩小时保持可读）
+let lod = 0;
+function lodFor(k){
+  if (lod === 0) return k >= 1.2 ? 2 : k >= 0.55 ? 1 : 0;
+  if (lod === 1) return k < 0.47 ? 0 : k >= 1.2 ? 2 : 1;
+  return k < 0.47 ? 0 : k < 1.08 ? 1 : 2;
+}
+
+const byId = {}; let showLinks = false; let selected = null; let cursorM = null, activeTag = null;
+const svg = document.getElementById("svg"), world = document.getElementById("world");
+const NS = "http://www.w3.org/2000/svg";
+const el = (tag, attrs = {}, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+const textW = s => [...s].reduce((w, c) => w + (/[\u0000-ÿ]/.test(c) ? 7 : 12.5), 0);
+const OFFS = [-30, 30, -66, 66, -102, 102, -138, 138, -174, 174, -210, 210];
+let lanes = [], groundY = null, zoneRows = [], layerRows = [], zoneSpans = [], ticks = [];
+const color = n => { const b = brOf(n.branch); return b.color || brOf(b.sub).color; };
+const bname = id => { const b = brOf(id); return b.sub ? `${b.layer} · ${nm(brOf(b.sub))} › ${nm(b)}` : `${b.layer} · ${nm(b)}`; };
+
+function placeLane(b, ns, y){
+  const s = S[lod];
+  ns = ns.slice().sort((a, c) => toM(a.date) - toM(c.date));
+  const rowsEnd = OFFS.map(() => -1e9); let maxRow = 1;
+  ns.forEach(n => { n.x = tx(n.date); const w = (Math.max(textW(T(n)), lod === 0 ? 0 : 54) + 24) * s;
+    let r = 0; while (r < OFFS.length - 1 && rowsEnd[r] > n.x - 4 * s) r++;
+    rowsEnd[r] = n.x + w; n.row = r; maxRow = Math.max(maxRow, r); });
+  const half = (Math.abs(OFFS[maxRow]) + 20) * s;
+  const laneY = y + half; ns.forEach(n => n.y = laneY + OFFS[n.row] * s);
+  lanes.push({b, ns, y: laneY});
+  return laneY + half + 14 * s;
+}
+function layout(){
+  NODES.forEach(n => { byId[n.id] = n; n.g = null; });
+  const s = S[lod], maxLevel = lod + 1;
+  let y = TOP; groundY = null; lanes = []; zoneRows = []; layerRows = []; zoneSpans = [];
+  ZONES.forEach(z => {
+    if (z.ground && groundY === null) { groundY = y + 8 * s; y += 64 * s; }
+    const y0 = y; zoneRows.push({z, y: y + 22 * s}); y += 44 * s;
+    const zn = NODES.filter(n => zoneOf(n).id === z.id && (n.level <= maxLevel || NOWM - toM(n.date) < 3));   // 近 90 天和未来的节点在任何缩放级别都显示
+    if (lod === 0) {
+      y = placeLane({id: "zone-" + z.id, name: "", color: z.color, ground: z.ground, summary: true}, zn, y);
+    } else {
+      LAYERS.filter(l => l.zone === z.id).forEach(Ly => {
+        layerRows.push({L: Ly, z, y: y + 14 * s}); y += 26 * s;
+        BRANCHES.filter(b => b.layer === Ly.id && !b.sub).forEach(b => {
+          const subs = BRANCHES.filter(x => x.sub === b.id);
+          const own = zn.filter(n => n.branch === b.id || (lod < 2 && subs.some(x => x.id === n.branch)));
+          if (own.length) y = placeLane(Object.assign({}, b, {ground: z.ground}), own, y);
+          if (lod === 2) subs.forEach(sb => { const ns = zn.filter(n => n.branch === sb.id);
+            if (ns.length) y = placeLane(Object.assign({}, sb, {ground: z.ground, color: b.color, isSub: true}), ns, y); });
+        });
+      });
+    }
+    zoneSpans.push({z, y0, y1: y + 6 * s}); y += 16 * s;
+  });
+  return y;
+}
+
+function render(){
+  world.innerHTML = "";
+  const H = layout();
+  const xNow = xOf(NOWM), W = xNow + 140;
+  const gGrid = el("g", {}, world), gLinks = el("g", {id: "links"}, world), gTree = el("g", {}, world), gNodes = el("g", {}, world);
+  // 时间刻度（年 / 季度 / 月），哪些显示由 apply() 按屏幕间距决定
+  ticks = [];
+  for (let m = 0; m <= Math.floor(NOWM) + 3; m++) {
+    const mo = m % 12, kind = mo === 0 ? "y" : mo % 3 === 0 ? "q" : "m", x = xOf(m);
+    const line = el("line", {x1: x, x2: x, y1: TOP - 30, y2: H, class: "tick " + kind}, gGrid);
+    ticks.push({m, x, kind, line, label: mo === 0 ? String(T0 + m / 12) : L(`${mo + 1}月`, MON[mo])});
+  }
+  el("rect", {x: xNow, y: TOP - 60, width: 4000, height: H + 4000, class: "futurezone"}, gGrid);
+  zoneSpans.forEach(({z, y0, y1}) => el("rect", {x: -4000, y: y0, width: W + 8000, height: y1 - y0, fill: z.color, opacity: .035}, gGrid));
+  if (groundY !== null) {
+    el("rect", {x: -4000, y: groundY, width: W + 8000, height: H - groundY + 4000, class: "soil"}, gGrid);
+    el("line", {x1: -4000, x2: W + 4000, y1: groundY, y2: groundY, class: "groundline"}, gGrid);
+  }
+  el("line", {x1: xNow, x2: xNow, y1: TOP - 60, y2: H + 200, class: "nowline"}, gGrid);
+  if (lanes.length) {
+    el("line", {x1: TRUNK_X, x2: TRUNK_X, y1: TOP - 40, y2: lanes[lanes.length - 1].y, class: "trunk"}, gTree);
+    const r = el("g", {class: "root"}, gTree);
+    el("circle", {cx: TRUNK_X, cy: TOP - 46, r: 9, fill: "#4fd1c5"}, r);
+    const rt = el("text", {x: TRUNK_X + 16, y: TOP - 41}, r); rt.textContent = L("生成式 AI 技术栈", "Generative AI stack");
+  }
+  lanes.forEach(({b, ns, y}) => {
+    if (!ns.length) return;
+    const past = ns.filter(n => toM(n.date) <= NOWM);
+    const xe = past.length ? past[past.length - 1].x : TRUNK_X + 110;
+    const sy0 = y + (b.ground ? -34 : 34);
+    const startX = b.isSub ? Math.max(TRUNK_X + 110, ns[0].x - 60) : TRUNK_X;
+    const d = b.isSub ? `M${startX},${y}` : `M${startX},${sy0} C${TRUNK_X + 60},${y} ${TRUNK_X + 60},${y} ${TRUNK_X + 110},${y}`;
+    el("path", {d: `${d} L${xe},${y}`, class: "limb" + (b.ground ? " rootlimb" : ""), stroke: b.color, "stroke-width": b.isSub ? 2.5 : 4}, gTree);
+    // 从最后一个节点一直虚线延伸到“现在”（以及未来的计划节点）：越长说明这个分支越久没有新进展
+    const xend = Math.max(xNow, ...ns.map(n => n.x));
+    el("path", {d: `M${xe},${y} L${xend},${y}`, class: "limb-stale", stroke: b.color}, gTree);
+    ns.forEach(n => {
+      const m = toM(n.date), age = NOWM - m, bc = color(n);
+      el("line", {x1: n.x, x2: n.x, y1: y, y2: n.y, class: "twig", stroke: b.summary ? bc : b.color}, gTree);
+      const cls = ["node", n.level > 1 && age >= 3 ? "minor" : "", n.status === "candidate" ? "candidate" : "", n.kind === "constraint" ? "constraint" : "",
+        m > NOWM ? "future" : age < 1 ? "fresh" : age < 3 ? "recent" : ""].filter(Boolean).join(" ");
+      const g = el("g", {class: cls, transform: `translate(${n.x},${n.y})`, "data-id": n.id}, gNodes);
+      const r0 = n.level === 1 ? 7 : n.level === 2 ? 5.5 : 4.5;
+      if (age >= 0 && age < 1) el("circle", {r: r0 + 2, class: "pulse"}, g);
+      if (n.kind === "constraint") el("rect", {x: -r0, y: -r0, width: r0 * 2, height: r0 * 2, transform: "rotate(45)", fill: bc, class: "shape"}, g);
+      else el("circle", {r: r0, fill: bc, class: "shape", stroke: n.kind === "upcoming" ? bc : null}, g);
+      const upward = n.y < y;
+      const t = el("text", {x: 11, y: upward ? -2 : 4}, g); t.textContent = T(n) + (n.status === "candidate" ? " ⧗" : "");
+      if (age >= 0 && age < 1) { const f = el("tspan", {class: "badge-fresh", dx: 6}, t); f.textContent = "NEW"; }
+      const dt = el("text", {x: 11, y: upward ? 11 : 17, class: "date"}, g); dt.textContent = n.date;
+      g.addEventListener("click", e => { e.stopPropagation(); select(n.id); });
+      n.g = g;
+    });
+  });
+  applyTag(); applyCursor();
+  drawLinks();
+  document.getElementById("qcount").textContent = NODES.filter(n => n.status === "candidate").length;
+  bounds = {W, H};
+  if (selected && byId[selected] && byId[selected].g) byId[selected].g.classList.add("sel");
+  apply(true);
+}
+
+function curve(a, b){ const mx = (a.x + b.x) / 2; return `M${a.x},${a.y} C${mx},${a.y} ${mx},${b.y} ${b.x},${b.y}`; }
+const visible = n => !!(n && n.g);
+function drawLinks(){
+  const g = document.getElementById("links"); g.innerHTML = "";
+  if (showLinks) NODES.forEach(n => visible(n) && n.parents.forEach(p => { const P = byId[p]; if (visible(P))
+    el("path", {d: curve(P, n), class: "link bg", stroke: "#8aa0b5"}, g); }));
+  if (!selected) return;
+  const s = byId[selected]; if (!visible(s)) return;
+  s.parents.forEach(p => { const P = byId[p]; if (visible(P)) el("path", {d: curve(P, s), class: "link", stroke: color(P)}, g); });
+  NODES.filter(n => n.parents.includes(s.id) && visible(n)).forEach(c => el("path", {d: curve(s, c), class: "link child", stroke: color(c)}, g));
+}
+
+/* ===== 平移缩放 ===== */
+let view = {x: 0, y: 0, k: 0.48}, bounds = {W: 2000, H: 1000};
+function switchLod(next){
+  // 以屏幕中部最近的里程碑节点为锚点，换级后让它停在原来的屏幕位置，避免画面跳动
+  const cy = innerHeight / 2; let anchor = null, best = 1e9;
+  NODES.forEach(n => { if (!n.g || n.level !== 1) return; const d = Math.abs(view.y + n.y * view.k - cy) + Math.abs(view.x + n.x * view.k - innerWidth / 2) * .2;
+    if (d < best) { best = d; anchor = n; } });
+  const sy = anchor ? view.y + anchor.y * view.k : null;
+  lod = next; render();
+  if (anchor && anchor.g) { view.y = sy - anchor.y * view.k; apply(true); }
+}
+function apply(fromRender){
+  const want = lodFor(view.k);
+  if (!fromRender && want !== lod) { switchLod(want); return; }
+  world.setAttribute("transform", `translate(${view.x},${view.y}) scale(${view.k})`);
+  svg.classList.toggle("zoomed-out", lod === 0 || view.k < 0.72);
+  const s = Math.min(Math.max(1 / view.k, 1), S[lod]);
+  NODES.forEach(n => n.g && n.g.setAttribute("transform", `translate(${n.x},${n.y}) scale(${s})`));
+  // 时间刻度：年优先，其次季度、月，屏幕间距不足就不显示
+  const oy = document.getElementById("ovYears"); oy.innerHTML = "";
+  const xNowS = view.x + xOf(NOWM) * view.k, taken = [xNowS];
+  const order = ["y", "q", "m"];
+  ticks.forEach(t => { t.sx = view.x + t.x * view.k; t.line.classList.add("hide"); });
+  order.forEach(kind => ticks.filter(t => t.kind === kind).forEach(t => {
+    if (t.sx < 60 || t.sx > innerWidth - 10) return;
+    if (taken.some(x => Math.abs(x - t.sx) < (kind === "y" ? 44 : 40))) return;
+    taken.push(t.sx); t.line.classList.remove("hide");
+    const tt = el("text", {x: t.sx + 3, y: 109, class: "ov-year" + (kind === "y" ? "" : " minor")}, oy); tt.textContent = t.label; }));
+  // “现在”标签
+  if (xNowS > 40 && xNowS < innerWidth + 200) {
+    const g = el("g", {class: "ov-now"}, oy);
+    const label = `${L("现在", "NOW")} ${fmtNow()}`;
+    const lx = Math.min(xNowS - 4, innerWidth - 150);
+    const r = el("rect", {x: lx, y: 118, rx: 4, height: 18}, g);
+    el("circle", {cx: lx + 9, cy: 127, r: 3.5}, g);
+    const tt = el("text", {x: lx + 17, y: 131}, g); tt.textContent = label;
+    r.setAttribute("width", tt.getComputedTextLength() + 24);
+  }
+  if (cursorM !== null) {
+    const cx = view.x + xOf(cursorM) * view.k;
+    el("line", {x1: cx, x2: cx, y1: 116, y2: innerHeight, stroke: "#ffb3be", "stroke-width": 1.5, "stroke-dasharray": "6 4"}, oy);
+  }
+  // 固定在左侧的大区 / 层 / 分支标签
+  const ol = document.getElementById("ovLanes"); ol.innerHTML = "";
+  if (groundY !== null) { const gy = view.y + groundY * view.k;
+    if (gy > 140 && gy < innerHeight + 30) {
+      const a = el("text", {x: 10, y: gy - 8, class: "groundlabel"}, ol); a.textContent = L("▲ 地上：智能与应用", "▲ ABOVE GROUND: intelligence & applications");
+      const b2 = el("text", {x: 10, y: gy + 18, class: "groundlabel"}, ol); b2.textContent = L("▼ 地下：算力与物理基础（根系）", "▼ UNDERGROUND: compute & physical foundations (roots)"); } }
+  zoneRows.forEach(({z, y}) => { const sy = view.y + y * view.k;
+    if (sy < 142 || sy > innerHeight - 10) return;
+    const cnt = NODES.filter(n => zoneOf(n).id === z.id).length;
+    const g = el("g", {class: "zonehead"}, ol);
+    const r = el("rect", {x: 4, y: sy - 15, rx: 5, height: 24, fill: "rgba(11,15,20,.95)", stroke: z.color}, g);
+    const t = el("text", {x: 12, y: sy + 2, class: "ov-zone", fill: z.color}, g); t.textContent = nm(z);
+    const t2 = el("tspan", {class: "ov-zone-sub", dx: 8}, t); t2.textContent = `${zdesc(z)} · ${L(`${cnt} 个节点`, `${cnt} nodes`)}`;
+    r.setAttribute("width", t.getComputedTextLength() + 18);
+    g.addEventListener("click", () => focusZone(z.id)); });
+  layerRows.forEach(({L: Ly, z, y}) => { const sy = view.y + y * view.k;
+    if (sy < 142 || sy > innerHeight - 10) return;
+    const t = el("text", {x: 14, y: sy + 4, class: "ov-layer", fill: z.color}, ol); t.textContent = `${Ly.id}  ${nm(Ly)}`; });
+  lanes.forEach(({b, y}) => { const sy = view.y + y * view.k;
+    if (b.summary || sy < 142 || sy > innerHeight - 10) return;
+    const g = el("g", {}, ol), x0 = b.isSub ? 22 : 4;
+    const r = el("rect", {x: x0, y: sy - 21, rx: 4, height: 18, fill: "rgba(11,15,20,.9)", stroke: b.color + "66"}, g);
+    const t = el("text", {x: x0 + 6, y: sy - 7, class: "ov-lane", fill: b.color}, g); t.textContent = (b.isSub ? "└ " : "") + nm(b);
+    r.setAttribute("width", t.getComputedTextLength() + 12); });
+  document.getElementById("lodbadge").innerHTML = `${L("细节", "Detail")} <b>${lod + 1}/3</b> · ${LOD_NAMES()[lod]}`;
+}
+function viewW(){ return innerWidth - (panel.classList.contains("open") && innerWidth > 720 ? 380 : 0); }
+function fit(){
+  const narrow = innerWidth <= 720;
+  view.k = narrow ? 0.4 : 0.48; if (lod !== 0) { lod = 0; render(); }
+  const w = viewW(), xNow = xOf(NOWM);
+  view.x = bounds.W * view.k < w - 20 ? 20 - 100 * view.k : w - (xNow + (narrow ? 60 : 330)) * view.k;   // 放不下就把“现在”放在右侧
+  view.y = 150 - (TOP - 62) * view.k; apply(true);
+}
+function zoomAt(f, cx, cy){ const k = Math.max(0.25, Math.min(2, view.k * f)); f = k / view.k;
+  view.x = cx - (cx - view.x) * f; view.y = cy - (cy - view.y) * f; view.k = k; apply(); }
+svg.addEventListener("wheel", e => { e.preventDefault();
+  if (e.ctrlKey || e.metaKey) { zoomAt(Math.exp(-Math.max(-30, Math.min(30, e.deltaY)) * 0.008), e.clientX, e.clientY); return; }
+  view.x -= (e.shiftKey ? e.deltaY : e.deltaX); view.y -= (e.shiftKey ? 0 : e.deltaY); apply(); }, {passive: false});
+let drag = null; const pts = new Map();
+svg.addEventListener("pointerdown", e => { pts.set(e.pointerId, {x: e.clientX, y: e.clientY});
+  if (pts.size === 1) { drag = {x: e.clientX, y: e.clientY, vx: view.x, vy: view.y, moved: false}; svg.classList.add("drag"); } });
+svg.addEventListener("pointermove", e => { if (!pts.has(e.pointerId)) return;
+  const prev = pts.get(e.pointerId); pts.set(e.pointerId, {x: e.clientX, y: e.clientY});
+  if (pts.size === 2) { const [a, b] = [...pts.values()]; const other = [...pts.entries()].find(([id]) => id !== e.pointerId)[1];
+    const d0 = Math.hypot(prev.x - other.x, prev.y - other.y), d1 = Math.hypot(a.x - b.x, a.y - b.y);
+    if (d0 > 0) zoomAt(d1 / d0, (a.x + b.x) / 2, (a.y + b.y) / 2); drag = null; return; }
+  if (!drag) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+  if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true; view.x = drag.vx + dx; view.y = drag.vy + dy; apply(); });
+const up = e => { pts.delete(e.pointerId); if (!pts.size) { svg.classList.remove("drag"); setTimeout(() => drag = null, 0); } };
+svg.addEventListener("pointerup", up); svg.addEventListener("pointercancel", up);
+document.querySelectorAll("#zoomctl [data-z]").forEach(b => b.onclick = () => { const z = +b.dataset.z; z ? zoomAt(z, viewW() / 2, innerHeight / 2) : fit(); });
+document.getElementById("toRoots").onclick = () => { if (groundY !== null) { view.y = 160 - groundY * view.k; apply(); } };
+document.getElementById("toTop").onclick = () => { view.y = 150 - (TOP - 62) * view.k; apply(); };
+function focusZone(id){
+  if (lod === 0) { view.k = 0.75; lod = 1; render(); }
+  const zr = zoneRows.find(r => r.z.id === id); if (zr) { view.y = 165 - zr.y * view.k; apply(); }
+}
+function ensureVisible(n){
+  const need = n.level - 1;
+  if (lod >= need && n.g) return;
+  lod = Math.max(lod, need); view.k = Math.max(view.k, [0.3, 0.75, 1.25][lod]); render();
+}
+function centerOn(n){ const w = viewW(), h = innerWidth > 720 ? innerHeight : innerHeight * 0.38;
+  view.x = w / 2 - n.x * view.k; view.y = h / 2 + 40 - n.y * view.k; apply(true); }
+
+/* ===== 时间：比例切换、实时“现在”、回放 ===== */
+document.getElementById("btnTime").onclick = () => {
+  const cx = viewW() / 2, m = mOf((cx - view.x) / view.k);
+  timeMode = timeMode === "focus" ? "linear" : "focus";
+  applyStatic();
+  render(); view.x = cx - xOf(m) * view.k; apply(true);
+  toast(timeMode === "focus" ? L("聚焦近期：越接近现在，时间轴拉得越开", "Focus on recent: the closer to now, the wider the axis") : L("线性：每个月等宽", "Linear: every month the same width"));
+};
+setInterval(() => {                       // 每 30 秒对一次真实时钟，“现在”线随之移动
+  const prevMin = NOW.getMinutes(); NOW = new Date(); if (NOW.getMinutes() === prevMin) return;
+  const follow = cursorM === null; NOWM = dateToM(NOW);
+  const cx = viewW() / 2, m = mOf((cx - view.x) / view.k);
+  render(); if (timeMode === "focus") { view.x = cx - xOf(m) * view.k; apply(true); }
+  if (!follow) applyCursor();
+}, 30000);
+const scrub = document.getElementById("scrub"), scrubLabel = document.getElementById("scrubLabel");
+const M_START = 4 * 12;   // 回放从 2010 年开始
+function setCursor(v){
+  if (v >= 1000) { cursorM = null; scrubLabel.textContent = L("现在", "Now"); }
+  else { cursorM = M_START + (NOWM - M_START) * v / 1000;
+    const y = T0 + Math.floor(cursorM / 12), mo = Math.floor(cursorM % 12) + 1; scrubLabel.textContent = `${y}-${pad(mo)}`; }
+  applyCursor(); apply(true);
+}
+function applyCursor(){ NODES.forEach(n => n.g && n.g.classList.toggle("notyet", cursorM !== null && toM(n.date) > cursorM)); }
+scrub.addEventListener("input", () => { stopPlay(); setCursor(+scrub.value); });
+let playing = null;
+function stopPlay(){ if (playing) { cancelAnimationFrame(playing); playing = null; document.getElementById("play").textContent = L("▶ 回放", "▶ Replay"); } }
+document.getElementById("play").onclick = () => {
+  if (playing) { stopPlay(); return; }
+  let v = +scrub.value >= 1000 ? 0 : +scrub.value, last = performance.now();
+  document.getElementById("play").textContent = L("❚❚ 暂停", "❚❚ Pause");
+  const step = t => { v = Math.min(1000, v + (t - last) / 14); last = t; scrub.value = v; setCursor(v);
+    if (v < 1000) playing = requestAnimationFrame(step); else stopPlay(); };
+  playing = requestAnimationFrame(step);
+};
+
+/* ===== 面板 ===== */
+const panel = document.getElementById("panel"), pbody = document.getElementById("pbody");
+document.getElementById("closePanel").onclick = () => { panel.classList.remove("open"); deselect(); };
+function deselect(){ if (selected && byId[selected] && byId[selected].g) byId[selected].g.classList.remove("sel"); selected = null; drawLinks(); }
+function chipFor(n){ return `<span class="chip" data-go="${n.id}"><i style="background:${color(n)}"></i>${T(n)}</span>`; }
+const KIND = () => ({constraint: [L("◆ 约束", "◆ Constraint"), "#f6ad55"], event: [L("事件", "Event"), "#a0aec0"], upcoming: [L("◌ 计划 / 未来", "◌ Scheduled"), "#ff9aa8"]});
+function select(id){
+  const n = byId[id]; if (!n) return;
+  if (selected && byId[selected] && byId[selected].g) byId[selected].g.classList.remove("sel");
+  selected = id; panel.classList.add("open"); ensureVisible(n);
+  n.g.classList.add("sel"); drawLinks();
+  const kids = NODES.filter(c => c.parents.includes(id));
+  const pub = Object.fromEntries(Object.entries(n).filter(([k]) => !["x", "y", "row", "g", "major"].includes(k)));
+  const kd = KIND()[n.kind];
+  pbody.innerHTML = `
+    <div class="meta"><span class="tag" style="color:${color(n)};border-color:${color(n)}55">${bname(n.branch)}</span>
+      <span>${n.date} · ${relDays(n)}</span>
+      ${kd ? `<span class="tag" style="color:${kd[1]};border-color:${kd[1]}55">${kd[0]}</span>` : ""}
+      <span class="tag">${L("细节级别", "Detail level")} ${n.level}</span>
+      ${n.status === "candidate" ? `<span class="tag cand">${L("Agent 候选 · 置信度", "Agent candidate · confidence")} ${n.confidence}</span>` : `<span class="tag ok">${L("已确认", "Verified")}</span>`}</div>
+    <h2>${T(n)}</h2>
+    <p>${SUM(n)}</p>
+    ${n.agent_reason ? `<h3>${L("Agent 判定理由", "Agent's reasoning")}</h3><p>${REASON(n)}</p>
+      <div class="rel"><button class="btn on" data-ok="${n.id}">${L("通过", "Approve")}</button><button class="btn" data-no="${n.id}">${L("驳回", "Reject")}</button></div>` : ""}
+    ${(n.tags || []).length ? `<h3>${L("横切标签", "Cross-cutting tags")}</h3><div class="rel">${n.tags.map(t => `<span class="tag">#${nm(TAGS.find(x => x.id === t))}</span>`).join("")}</div>` : ""}
+    <h3>${L("判定依据", "Why it counts")}</h3><div class="rel">${n.criteria.map(c => `<span class="tag">${CR(c)}</span>`).join("")}</div>
+    <h3>${L("来源", "Source")}</h3><p style="margin:0">${n.source ? SRC(n.source) : "—"}${n.url ? `<br><a href="${n.url}" target="_blank" rel="noopener">${n.url}</a>` : ""}</p>
+    <h3>${L("父节点（继承自）", "Parents (builds on)")}</h3><div class="rel">${n.parents.map(p => chipFor(byId[p])).join("") || `<span class="tag">${L("根", "Root")}</span>`}</div>
+    <h3>${L("子节点（影响了）", "Children (influenced)")}</h3><div class="rel">${kids.map(chipFor).join("") || `<span class="tag">${L("暂无", "None yet")}</span>`}</div>
+    <h3>${L("节点数据（Agent 读写格式）", "Node data (agent read/write format)")}</h3><pre>${JSON.stringify(pub, null, 2).replace(/</g, "&lt;")}</pre>`;
+  wirePanel(); centerOn(n);
+}
+function wirePanel(){
+  pbody.querySelectorAll("[data-go]").forEach(c => c.onclick = () => select(c.dataset.go));
+  pbody.querySelectorAll("[data-ok]").forEach(b => b.onclick = () => review(b.dataset.ok, true));
+  pbody.querySelectorAll("[data-no]").forEach(b => b.onclick = () => review(b.dataset.no, false));
+}
+function review(id, ok){
+  const n = byId[id];
+  if (ok) { n.status = "verified"; delete n.agent_reason; if (n.en) delete n.en.agent_reason; toast(L(`已通过：${n.title}（演示，仅本页内存）`, `Approved: ${T(n)} (demo, in-page memory only)`)); }
+  else { NODES = NODES.filter(x => x.id !== id); delete byId[id]; if (selected === id) selected = null; toast(L(`已驳回：${n.title}`, `Rejected: ${T(n)}`)); }
+  render(); if (ok) select(id); else showQueue();
+}
+function showQueue(){
+  deselect();
+  const q = NODES.filter(n => n.status === "candidate");
+  pbody.innerHTML = `<h2>${L("待审核队列", "Review queue")}</h2><p>${L("Agent 每次运行后，把它认为是“突破”或“约束”的候选节点放在这里，人工通过后才进入正式树。", "After each run the agent puts candidate breakthroughs and constraints here. They join the tree only after a human approves them.")}</p>` +
+    (q.length ? q.map(n => `<div class="qitem"><b>${T(n)}</b> <span class="tag cand">${n.confidence}</span>
+      <div class="why">${n.date} · ${L("建议挂在", "Suggested under")}「${bname(n.branch)}」← ${n.parents.map(p => T(byId[p])).join(L("、", ", "))}<br>${REASON(n)}</div>
+      <div class="row"><button class="btn on" data-ok="${n.id}">${L("通过", "Approve")}</button><button class="btn" data-no="${n.id}">${L("驳回", "Reject")}</button><button class="btn" data-go="${n.id}">${L("在树上查看", "Show on tree")}</button></div></div>`).join("")
+     : `<p style="color:var(--dim)">${L("队列已清空。", "Queue is empty.")}</p>`);
+  wirePanel(); panel.classList.add("open");
+}
+function showFeed(){
+  deselect();
+  const sorted = [...NODES].sort((a, b) => toM(b.date) - toM(a.date));
+  const future = sorted.filter(n => toM(n.date) > NOWM), past = sorted.filter(n => toM(n.date) <= NOWM).slice(0, 18);
+  const row = n => `<div class="feed" data-go="${n.id}" style="border-color:${color(n)}"><div class="t">${n.date} · ${relDays(n)} · ${bname(n.branch)}</div>${T(n)}</div>`;
+  pbody.innerHTML = `<h2>${L("更新动态", "What's new")}</h2><p>${L(`现在是 ${fmtNow()}。30 天内的新节点在树上带红色脉冲和 NEW 标记，90 天内的带粉色描边。`, `It is now ${fmtNow()}. Nodes from the last 30 days pulse red with a NEW tag; nodes from the last 90 days have a pink outline.`)}</p>` +
+    (future.length ? `<h3>${L("即将到来", "Coming up")}</h3>` + future.map(row).join("") : "") + `<h3>${L("最近", "Recent")}</h3>` + past.map(row).join("");
+  wirePanel(); panel.classList.add("open");
+}
+document.getElementById("btnQueue").onclick = showQueue;
+document.getElementById("btnFeed").onclick = showFeed;
+document.getElementById("btnLinks").onclick = e => { showLinks = !showLinks; e.currentTarget.classList.toggle("on", showLinks); drawLinks(); };
+
+/* ===== 图例 / 标签 / 搜索 ===== */
+function applyTag(){ NODES.forEach(n => n.g && n.g.classList.toggle("untag", !!activeTag && !(n.tags || []).includes(activeTag))); }
+function renderLegend(){
+  const LG = document.getElementById("legend");
+  LG.innerHTML = `<span class="divider">${L("跳到", "Jump to")}</span>` + ZONES.map(z => `<span class="chip" data-z="${z.id}"><i style="background:${z.color}"></i>${nm(z)}</span>`).join("")
+    + `<span class="divider">${L("横切标签", "Cross-cutting tags")}</span>`
+    + TAGS.map(t => `<span class="chip ${activeTag === t.id ? "tagon" : ""}" data-t="${t.id}">#${nm(t)}</span>`).join("")
+    + `<span class="divider">${L("● 突破　◆ 约束　◌ 计划", "● Breakthrough　◆ Constraint　◌ Scheduled")}　<span style="color:#ff5d73">${L("◉ 30 天内新增", "◉ New in 30 days")}</span></span>`;
+  LG.querySelectorAll("[data-z]").forEach(c => c.onclick = () => focusZone(c.dataset.z));
+  LG.querySelectorAll("[data-t]").forEach(c => c.onclick = () => {
+    activeTag = activeTag === c.dataset.t ? null : c.dataset.t;
+    if (activeTag && lod === 0) { view.k = 0.75; lod = 1; render(); }
+    applyTag(); renderLegend();
+    if (activeTag) { const tn = nm(TAGS.find(t => t.id === activeTag)); toast(L(`已高亮 #${tn}，再点一次取消`, `Highlighting #${tn}. Click again to clear.`)); } });
+}
+document.getElementById("search").addEventListener("input", e => {
+  const q = e.target.value.trim().toLowerCase();
+  NODES.forEach(n => { if (!n.g) return; const hit = q && (n.title + n.summary + n.source + (n.en ? n.en.title + n.en.summary : "")).toLowerCase().includes(q);
+    n.g.classList.toggle("hit", !!hit); n.g.classList.toggle("dim", !!q && !hit); });
+});
+document.getElementById("search").addEventListener("keydown", e => { if (e.key !== "Enter") return;
+  const q = e.target.value.trim().toLowerCase(); const n = NODES.find(n => (n.title + n.summary + (n.en ? n.en.title + n.en.summary : "")).toLowerCase().includes(q)); if (n) select(n.id); });
+
+function applyStatic(){
+  document.documentElement.lang = L("zh-CN", "en");
+  document.title = L("生成式 AI 技术路线树", "Generative AI Tech Roadmap");
+  const $ = id => document.getElementById(id);
+  $("ttl1").textContent = L("生成式 AI ", "Generative AI ");
+  $("ttl2").textContent = L("技术路线树", "Tech Roadmap");
+  $("ttlv").textContent = L("v0.5 · 语义缩放 + 实时时间轴", "v0.5 · semantic zoom + live timeline");
+  $("search").placeholder = L("搜索节点（中英文皆可）", "Search nodes (EN or 中文)");
+  $("btnTime").innerHTML = `${L("时间：", "Time: ")}<span id="tmode">${timeMode === "focus" ? L("聚焦近期", "recent focus") : L("线性", "linear")}</span>`;
+  $("btnLinks").textContent = L("依赖连线", "Links");
+  $("btnFeed").innerHTML = L('<span class="long">更新</span>动态', '<span class="long">What\'s </span>New');
+  $("btnQueue").innerHTML = `${L('<span class="long">待</span>审核', "Review")} <b id="qcount">${NODES.filter(n => n.status === "candidate").length}</b>`;
+  $("btnLang").textContent = L("EN", "中文");
+  $("btnLang").title = L("Switch to English", "切换到中文");
+  $("hint").textContent = L("滚轮上下移动 · Ctrl+滚轮或双指捏合缩放，越放大越细 · 点节点看详情", "Scroll to pan · Ctrl+scroll or pinch to zoom; zoom in for more detail · click a node for details");
+  $("fitBtn").textContent = L("适配", "Fit");
+  $("toRoots").textContent = L("⇣ 根系", "⇣ Roots");
+  $("toTop").textContent = L("⇡ 树冠", "⇡ Canopy");
+  if (!playing) $("play").textContent = L("▶ 回放", "▶ Replay");
+  if (cursorM === null) $("scrubLabel").textContent = L("现在", "Now");
+}
+function setLang(next){
+  if (next === lang) return;
+  const cx = viewW() / 2, m = mOf((cx - view.x) / view.k);
+  lang = next;
+  try { localStorage.setItem("gt-lang", lang); } catch (e) {}
+  try { history.replaceState(null, "", "#" + lang); } catch (e) {}
+  applyStatic(); renderLegend(); render(); view.x = cx - xOf(m) * view.k; apply(true);
+  if (selected) select(selected); else if (panel.classList.contains("open")) panel.classList.remove("open");
+}
+document.getElementById("btnLang").onclick = () => setLang(lang === "zh" ? "en" : "zh");
+addEventListener("hashchange", () => { const h = location.hash.slice(1); if (h === "en" || h === "zh") setLang(h); });
+
+let tt; function toast(m){ const t = document.getElementById("toast"); t.textContent = m; t.style.opacity = 1; clearTimeout(tt); tt = setTimeout(() => t.style.opacity = 0, 2400); }
+applyStatic(); renderLegend(); render(); fit();
+addEventListener("resize", () => apply(true));
+setTimeout(() => document.getElementById("hint").classList.add("gone"), 7000);
+svg.addEventListener("pointerdown", () => document.getElementById("hint").classList.add("gone"), {once: true});
+
+</script>
+</body>
+</html>
