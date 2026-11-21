@@ -47,6 +47,8 @@ Pan and zoom never trigger a React render. `applyNow()` runs at most once per an
 
 Node clicks use one delegated listener on the `<svg>` instead of one per node. The replay slider toggles a class on existing nodes rather than re-rendering.
 
+Selecting a node (click, search or a link in the panel) flies the camera to it. The app first raises the level of detail so the node and its parents are drawn. The canvas then fits the node, its parents and its children (`fitView`, nearest first) into the screen area the detail panel leaves free: on phones, the strip above the bottom sheet. The zoom never goes above the current one (or the level's minimum) and never below the level's floor (`K_FLOOR`), so a relative too far away to fit, typically one in another zone, is left out; its link still leads off screen. The flight lasts about 400 ms, interpolates the zoom geometrically around the area's centre, holds level-of-detail switches until it lands, stops on any wheel or pointer input and jumps straight to the end with `prefers-reduced-motion`. Each request runs once, so later layout changes (the clock, the language) don't pull the view back.
+
 Measured on the same machine with 4× CPU throttling (200 pan frames, Chromium performance metrics):
 
 | | script / frame | style + layout / frame | main thread / frame |

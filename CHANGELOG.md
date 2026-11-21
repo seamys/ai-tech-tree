@@ -15,6 +15,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Each branch's name repeats along its line, like a metro map, so a lane can be identified far from the left edge.
 - Neighbouring branches in a zone now have clearly different colours: Agents & Tools, Fine-tuning & Serving, Multimodal, Data Centres & Clusters, Fabrication, Packaging & Memory, and Minerals & Materials got new hues.
 - Lane lines are slightly bolder and keep a constant on-screen width at every zoom.
+- **Selecting a node shows its relatives.** The view glides to fit the node with its parents and children next to the detail panel, instead of jumping to centre the node alone. It never zooms in further than you were, and leaves out relatives too far away to fit at the current level of detail.
+
+### Fixed
+- With a node selected, the view no longer snaps back to it every minute when the clock updates.
 
 ## [1.3.0] - 2026-11-20
 

@@ -107,6 +107,24 @@ try {
     check(!requests.some((u) => /Globe|land-110m/.test(u)), "globe chunk is not loaded up front");
     await page.fill(".search", "DeepSeek-V3"); await page.press(".search", "Enter"); await page.waitForTimeout(3800);
     check(requests.some((u) => /land-110m/.test(u)), "globe map data loads when a panel opens");
+    // Selecting a node flies the camera so the node, its parents and its children are on screen,
+    // clear of the header and the detail panel. Relatives in another zone (here the H800 chip
+    // under DeepSeek-V3) may be too far apart to fit without dropping a level of detail, so the
+    // check covers the selected node's own zone.
+    const data = JSON.parse(await readFile(join(ROOT, "data/nodes.json"), "utf8"));
+    const tax = JSON.parse(await readFile(join(ROOT, "data/taxonomy.json"), "utf8"));
+    const zoneOf = (n) => { const b = tax.branches.find((x) => x.id === n.branch); return tax.layers.find((l) => l.id === b.layer).zone; };
+    const sel = data.find((n) => n.id === "dsv3");
+    const related = [sel, ...data.filter((n) => sel.parents.includes(n.id) || n.parents.includes(sel.id))]
+      .filter((n) => zoneOf(n) === zoneOf(sel)).map((n) => n.id);
+    const boxes = await page.evaluate((ids) => ids.map((id) => {
+      const g = document.querySelector(`g.node[data-id="${id}"] .shape`);
+      const r = g?.getBoundingClientRect();
+      return r && r.width ? { id, x: r.x + r.width / 2, y: r.y + r.height / 2 } : { id, missing: true };
+    }), related);
+    const panelLeft = await page.evaluate(() => document.querySelector(".panel").getBoundingClientRect().left);
+    const off = boxes.filter((b) => b.missing || b.x < 40 || b.x > panelLeft || b.y < 140 || b.y > 900);
+    check(off.length === 0, "selected node, parents and children are on screen", `${related.length - off.length}/${related.length}${off.length ? " off: " + JSON.stringify(off) : ""}`);
     const caption = await page.innerText(".globebox figcaption");
     check(caption.includes("杭州"), "globe caption names the place", caption);
     const frames = await page.evaluate(() => new Promise((res) => {

@@ -50,6 +50,26 @@ const LABEL_TOP = 142; // sticky labels hide under the header/axis above this y
 const SPINE_MIN = 18, ELBOW = 30, FORK = 40, SUB = 64, BEND = 24;
 // Lane names repeat along each lane roughly this far apart (screen px).
 const PILL_GAP = 560;
+// Lowest zoom that keeps each level of detail (just above where lodFor drops a level), and the
+// length of the camera flight to a selected node.
+const K_FLOOR: Record<Lod, number> = { 0: MIN_K, 1: 0.5, 2: 1.1 };
+const FLY_MS = 420;
+
+interface Box { left: number; top: number; right: number; bottom: number }
+
+/** A view {x, y, k} that shows the points (world coords, most important first) inside `area`
+ *  (screen px) with kMin <= k <= kMax. A point that would push the zoom below kMin is left out. */
+export function fitView(pts: { x: number; y: number }[], area: Box, kMin: number, kMax: number) {
+  const aw = area.right - area.left, ah = area.bottom - area.top;
+  let x0 = pts[0].x, x1 = x0, y0 = pts[0].y, y1 = y0;
+  for (const p of pts.slice(1)) {
+    const nx0 = Math.min(x0, p.x), nx1 = Math.max(x1, p.x), ny0 = Math.min(y0, p.y), ny1 = Math.max(y1, p.y);
+    if ((nx1 - nx0) * kMin > aw || (ny1 - ny0) * kMin > ah) continue;
+    x0 = nx0; x1 = nx1; y0 = ny0; y1 = ny1;
+  }
+  const k = Math.max(kMin, Math.min(kMax, aw / Math.max(x1 - x0, 1e-6), ah / Math.max(y1 - y0, 1e-6)));
+  return { k, x: area.left + aw / 2 - ((x0 + x1) / 2) * k, y: area.top + ah / 2 - ((y0 + y1) / 2) * k };
+}
 const MIN_K_FOR_LOD: Record<Lod, number> = { 0: 0.25, 1: 0.75, 2: 1.25 };
 const PANEL_W = 380;
 
@@ -202,6 +222,12 @@ export const TreeCanvas = forwardRef<CanvasHandle, Props>(function TreeCanvas(pr
   // Mutable mirrors so the rAF loop always sees current props without re-binding listeners.
   const live = useRef({ layout, scale, lod, lang, now, cursorM, panelOpen });
   live.current = { layout, scale, lod, lang, now, cursorM, panelOpen };
+  // Camera flight to a selected node. While a focus request is pending or a flight runs, the zoom
+  // passes through other levels of detail; switching levels then would move every node under it.
+  const flight = useRef(0);
+  const handledFocus = useRef(0);
+  const focusPending = useRef(false);
+  focusPending.current = focusRequest !== null && focusRequest.nonce !== handledFocus.current;
   const nodeEls = useRef<NodeEl[]>([]);
   // Label decluttering depends only on zoom (not pan), so it reruns when k or the inputs change.
   const declutterKey = useRef("");
@@ -228,7 +254,7 @@ export const TreeCanvas = forwardRef<CanvasHandle, Props>(function TreeCanvas(pr
 
     // Switch level of detail when the zoom crosses a threshold; keep the nearest milestone still.
     const want = lodFor(v.k, lod);
-    if (want !== lod && pending.current.lod === undefined) {
+    if (want !== lod && pending.current.lod === undefined && !flight.current && !focusPending.current) {
       let best: { id: string; sy: number } | null = null, bestD = Infinity;
       for (const [id, p] of layout.positions) {
         if (p.node.level !== 1) continue;
@@ -450,17 +476,48 @@ export const TreeCanvas = forwardRef<CanvasHandle, Props>(function TreeCanvas(pr
     applyNow();
   }, [layout]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Center on a node the app asked to focus (after its layout is ready).
+  // Fly to a node the app asked to focus (once per request, after its layout is ready): fit the
+  // node with its parents and children in the part of the screen the detail panel leaves free.
   useLayoutEffect(() => {
-    if (!focusRequest) return;
+    if (!focusRequest || handledFocus.current === focusRequest.nonce) return;
+    handledFocus.current = focusRequest.nonce;
+    focusPending.current = false;
     const p = layout.positions.get(focusRequest.id);
     if (!p) return;
-    const v = view.current, H = hostRef.current?.clientHeight ?? innerHeight;
-    v.k = Math.max(v.k, MIN_K_FOR_LOD[lod]);
-    v.x = viewWidth() / 2 - p.x * v.k;
-    v.y = (innerWidth > 720 ? H / 2 : H * 0.19) + 40 - p.y * v.k;
-    applyNow();
+    const v = view.current, H = hostRef.current?.clientHeight ?? innerHeight, W = viewWidth();
+    const narrow = (hostRef.current?.clientWidth ?? innerWidth) <= 720;
+    // Leave room for the spine and captions on the left, labels on the right, the header and
+    // axis on top, and the zoom controls (or, on phones, the bottom sheet) below.
+    const area = { left: 96, right: W - (narrow ? 110 : 190), top: LABEL_TOP + 34, bottom: narrow ? H * 0.38 - 12 : H - 96 };
+    const near = (q: { x: number; y: number }) => Math.hypot(q.x - p.x, q.y - p.y);
+    const parents = p.node.parents.map((id) => layout.positions.get(id)).filter((q) => q !== undefined).sort((a, b) => near(a) - near(b));
+    const children = [...layout.positions.values()].filter((q) => q.node.parents.includes(p.node.id)).sort((a, b) => near(a) - near(b));
+    // Never zoom in past the current zoom (or the level's minimum), never out past the level.
+    const kMax = Math.max(v.k, MIN_K_FOR_LOD[lod]);
+    flyTo(fitView([p, ...parents, ...children], area, Math.min(K_FLOOR[lod], kMax), kMax), area);
   }, [focusRequest, layout]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** Animate the camera to `to`, keeping the zoom change smooth around the area's centre. */
+  const flyTo = useCallback((to: { x: number; y: number; k: number }, area: Box) => {
+    cancelAnimationFrame(flight.current);
+    const v = view.current, from = { ...v };
+    const cx = (area.left + area.right) / 2, cy = (area.top + area.bottom) / 2;
+    const c0 = { x: (cx - from.x) / from.k, y: (cy - from.y) / from.k }, c1 = { x: (cx - to.x) / to.k, y: (cy - to.y) / to.k };
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) { Object.assign(v, to); flight.current = 0; applyNow(); return; }
+    const t0 = performance.now();
+    const step = (now: number) => {
+      const t = Math.min(1, (now - t0) / FLY_MS);
+      const e = t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
+      const k = from.k * (to.k / from.k) ** e;
+      const c = { x: c0.x + (c1.x - c0.x) * e, y: c0.y + (c1.y - c0.y) * e };
+      v.k = k; v.x = cx - c.x * k; v.y = cy - c.y * k;
+      if (t === 1) Object.assign(v, to);
+      flight.current = t < 1 ? requestAnimationFrame(step) : 0;
+      applyNow();
+    };
+    flight.current = requestAnimationFrame(step);
+  }, [applyNow]);
+  useEffect(() => () => cancelAnimationFrame(flight.current), []);
 
   // Playback cursor: fade nodes that haven't happened yet (class toggle only).
   useEffect(() => {
@@ -499,8 +556,11 @@ export const TreeCanvas = forwardRef<CanvasHandle, Props>(function TreeCanvas(pr
     let drag: { x: number; y: number; vx: number; vy: number; moved: boolean } | null = null;
     let moved = false;
 
+    // Any direct input takes the camera back from a running flight.
+    const stopFlight = () => { if (flight.current) { cancelAnimationFrame(flight.current); flight.current = 0; } };
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
+      stopFlight();
       if (e.ctrlKey || e.metaKey) { zoomAt(Math.exp(-Math.max(-30, Math.min(30, e.deltaY)) * 0.008), e.clientX, e.clientY); return; }
       const v = view.current;
       v.x -= e.shiftKey ? e.deltaY : e.deltaX;
@@ -508,6 +568,7 @@ export const TreeCanvas = forwardRef<CanvasHandle, Props>(function TreeCanvas(pr
       apply();
     };
     const onDown = (e: PointerEvent) => {
+      stopFlight();
       pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (pts.size === 1) { moved = false; drag = { x: e.clientX, y: e.clientY, vx: view.current.x, vy: view.current.y, moved: false }; svg.classList.add("dragging"); }
       host.dispatchEvent(new CustomEvent("canvas-interact"));

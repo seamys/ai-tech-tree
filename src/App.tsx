@@ -89,8 +89,10 @@ export function App({ taxonomy, initialNodes }: { taxonomy: Taxonomy; initialNod
   const select = useCallback((id: string) => {
     const n = nodesById.get(id);
     if (!n) return;
-    // Make sure the node is drawn at the current level of detail; raise it if needed.
-    const need = (isRecent(ageOf(n.date, scale.nowM)) || ageOf(n.date, scale.nowM) < 0 ? 0 : n.level - 1) as Lod;
+    // Make sure the node and its parents are drawn at the current level of detail; raise it if
+    // needed. (The canvas then fits the node with its parents and children; see TreeCanvas.)
+    const needOf = (m: TechNode) => (isRecent(ageOf(m.date, scale.nowM)) || ageOf(m.date, scale.nowM) < 0 ? 0 : m.level - 1);
+    const need = Math.max(needOf(n), ...n.parents.map((p) => nodesById.get(p)).filter((m) => m !== undefined).map(needOf)) as Lod;
     if (need > lod) setLod(need);
     if (focus.mode === "hide" && !inFocus(n)) setToast(t(lang, "focusOutside"));
     setPanel({ type: "node", id });
