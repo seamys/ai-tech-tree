@@ -110,13 +110,15 @@ try {
     // Selecting a node flies the camera so the node, its parents and its children are on screen,
     // clear of the header and the detail panel. Relatives in another zone (here the H800 chip
     // under DeepSeek-V3) may be too far apart to fit without dropping a level of detail, so the
-    // check covers the selected node's own zone.
+    // check covers the selected node's own zone, and only relatives drawn at the current level of
+    // detail (level-3 children appear only when zoomed in further).
     const data = JSON.parse(await readFile(join(ROOT, "data/nodes.json"), "utf8"));
     const tax = JSON.parse(await readFile(join(ROOT, "data/taxonomy.json"), "utf8"));
     const zoneOf = (n) => { const b = tax.branches.find((x) => x.id === n.branch); return tax.layers.find((l) => l.id === b.layer).zone; };
     const sel = data.find((n) => n.id === "dsv3");
+    const drawn = new Set(await page.evaluate(() => [...document.querySelectorAll("g.node")].map((g) => g.dataset.id)));
     const related = [sel, ...data.filter((n) => sel.parents.includes(n.id) || n.parents.includes(sel.id))]
-      .filter((n) => zoneOf(n) === zoneOf(sel)).map((n) => n.id);
+      .filter((n) => zoneOf(n) === zoneOf(sel) && drawn.has(n.id)).map((n) => n.id);
     const boxes = await page.evaluate((ids) => ids.map((id) => {
       const g = document.querySelector(`g.node[data-id="${id}"] .shape`);
       const r = g?.getBoundingClientRect();
