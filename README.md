@@ -72,7 +72,8 @@ npm run dev        # http://localhost:5173 (rebuilds on change)
 | `npm run build` | Production build into `dist/` (hashed assets, data version stamp, badges) |
 | `npm run validate` | Checks `data/` against the schema and cross-file rules |
 | `npm run typecheck` | TypeScript, strict mode |
-| `npm run check` | `validate` + `typecheck`, the same as CI |
+| `npm run check` | `validate` + `typecheck` |
+| `npm run test:e2e` | Browser smoke test against `dist/`: focus, zoom labels, globe, phone (run `npx playwright install chromium` once) |
 
 Requires Node.js 22+. CI uses the version in [`.nvmrc`](.nvmrc).
 

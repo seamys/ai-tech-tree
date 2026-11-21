@@ -33,6 +33,7 @@ npm install
 npm run dev        # local server with rebuild on change
 npm run check      # validate data + type-check (CI runs the same)
 npm run build
+npm run test:e2e   # browser smoke test against dist/ (CI runs it too)
 ```
 
 ## Pull requests
