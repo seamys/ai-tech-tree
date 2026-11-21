@@ -78,6 +78,12 @@ test("invalid fields come back as errors the model can fix", () => {
   assert.ok(checkProposal(proposal({ kind: "upcoming", date: "2027-02-01", url: "https://example.com/u" }), ctx).node);
 });
 
+test("source may be a string or bilingual", () => {
+  const ctx = makeContext(tax, nodes, { today });
+  const { node } = checkProposal(proposal({ source: { zh: " 美国商务部 ", en: "US Commerce" } }), ctx);
+  assert.deepEqual(node.source, { zh: "美国商务部", en: "US Commerce" });
+});
+
 test("ids are slugs and stay unique", () => {
   assert.equal(slugify("GPT-6 Astra!"), "gpt-6-astra");
   const ctx = makeContext(tax, nodes, { today });

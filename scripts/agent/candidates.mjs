@@ -166,7 +166,7 @@ export function checkProposal(p, ctx) {
     kind: p.kind,
     title: bi(p.title),
     summary: bi(p.summary),
-    ...(p.source?.trim() ? { source: p.source.trim() } : {}),
+    ...(typeof p.source === "string" && p.source.trim() ? { source: p.source.trim() } : isBi(p.source) ? { source: bi(p.source) } : {}),
     url,
     criteria,
     ...(tags.length ? { tags } : {}),
