@@ -5,6 +5,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+- **Daily agent.** `.github/workflows/agent.yml` runs once a day (and on demand). It reads lab blogs, Hugging Face daily papers and industry news, searches the web for chips, data centres, power, minerals and policy, checks the `upcoming` nodes that are due, and verifies each find against its primary source with Claude. It then opens a pull request labelled `agent` with up to five `status: "candidate"` nodes, each with its reasons and evidence. Nothing is published without a human merge.
+- `npm run agent` (`--feeds-only`, `--dry-run`, `--report`), with feeds and search topics in `scripts/agent/sources.json`.
+- Unit tests for the agent (`npm run test:unit`), run in CI.
+
 ## [1.3.0] - 2026-11-20
 
 ### Added

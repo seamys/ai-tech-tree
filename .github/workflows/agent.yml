@@ -1,0 +1,94 @@
+name: Daily agent
+
+# Proposes candidate nodes once a day and opens a pull request for review.
+# Needs the ANTHROPIC_API_KEY repository secret, and "Allow GitHub Actions to
+# create and approve pull requests" under Settings -> Actions -> General.
+on:
+  schedule:
+    - cron: "17 22 * * *" # 06:17 Beijing time
+  workflow_dispatch:
+    inputs:
+      max_candidates:
+        description: Most nodes to propose
+        default: "5"
+      since_days:
+        description: How many days back to look
+        default: "3"
+      dry_run:
+        description: Run the model but open no pull request
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agent
+  cancel-in-progress: false
+
+jobs:
+  propose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write # push the proposal branch
+      pull-requests: write # open the pull request
+      issues: write # create the "agent" label on first use
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # The agent step must not see a token that can push.
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; else npm install --no-audit --no-fund; fi
+
+      - name: Collect URLs from earlier agent pull requests
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr list --label agent --state all --limit 100 --json body --jq '.[].body' > "$RUNNER_TEMP/seen.txt" || true
+
+      - name: Run agent
+        id: agent
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          AGENT_MAX_CANDIDATES: ${{ inputs.max_candidates || '5' }}
+          AGENT_SINCE_DAYS: ${{ inputs.since_days || '3' }}
+          DRY_RUN: ${{ inputs.dry_run && '--dry-run' || '' }}
+        run: npm run agent -- --seen "$RUNNER_TEMP/seen.txt" --report "$RUNNER_TEMP/report.md" $DRY_RUN
+
+      # Pull requests opened with the workflow token do not trigger other
+      # workflows, so run the same checks as pages.yml here.
+      - name: Check the proposal
+        if: steps.agent.outputs.count != '0'
+        run: |
+          npm run validate
+          npm run typecheck
+          npm run test:unit
+          npm run build
+          npx playwright install --with-deps chromium
+          npm run test:e2e
+
+      - name: Open pull request
+        if: steps.agent.outputs.count != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COUNT: ${{ steps.agent.outputs.count }}
+        run: |
+          day=$(date -u +%F)
+          branch="agent/candidates-$day-$GITHUB_RUN_ID"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add data/nodes.json
+          git commit -m "data: propose $COUNT candidate node(s) from $day"
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$branch"
+          gh label create agent --color 7c5cff --description "Proposed by the daily agent" --force
+          gh pr create --base main --head "$branch" --label agent \
+            --title "Agent: $COUNT candidate node(s) from $day" \
+            --body-file "$RUNNER_TEMP/report.md"

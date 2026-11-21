@@ -1,0 +1,23 @@
+{
+  "$comment": "Sources the daily agent reads. Feeds are fetched by code; search_focus steers the model's own web searches toward layers that feeds rarely cover. A feed that fails is logged and skipped.",
+  "feeds": [
+    { "id": "hf-papers", "name": "Hugging Face Daily Papers", "url": "https://huggingface.co/api/daily_papers", "type": "hf-daily", "max": 15 },
+    { "id": "openai", "name": "OpenAI News", "url": "https://openai.com/news/rss.xml", "type": "rss", "max": 10 },
+    { "id": "deepmind", "name": "Google DeepMind Blog", "url": "https://deepmind.google/blog/rss.xml", "type": "rss", "max": 10 },
+    { "id": "google-ai", "name": "Google AI Blog", "url": "https://blog.google/technology/ai/rss/", "type": "rss", "max": 10 },
+    { "id": "hf-blog", "name": "Hugging Face Blog", "url": "https://huggingface.co/blog/feed.xml", "type": "rss", "max": 10 },
+    { "id": "nvidia", "name": "NVIDIA Newsroom", "url": "https://nvidianews.nvidia.com/releases.xml", "type": "rss", "max": 10 },
+    { "id": "semianalysis", "name": "SemiAnalysis", "url": "https://www.semianalysis.com/feed", "type": "rss", "max": 10 },
+    { "id": "dcd", "name": "DatacenterDynamics", "url": "https://www.datacenterdynamics.com/en/rss/", "type": "rss", "max": 15 },
+    { "id": "techcrunch-ai", "name": "TechCrunch AI", "url": "https://techcrunch.com/category/artificial-intelligence/feed/", "type": "rss", "max": 15 },
+    { "id": "verge-ai", "name": "The Verge AI", "url": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml", "type": "rss", "max": 10 },
+    { "id": "synced", "name": "Synced Review", "url": "https://syncedreview.com/feed/", "type": "rss", "max": 10 },
+    { "id": "qbitai", "name": "量子位 QbitAI", "url": "https://www.qbitai.com/feed", "type": "rss", "max": 10 }
+  ],
+  "search_focus": [
+    { "zone": "physical", "topics": ["rare earth and critical mineral export controls", "gallium, germanium, graphite supply", "power for AI data centres: nuclear, gas turbines, grid interconnection", "advanced packaging and CoWoS capacity", "new fabs, EUV and High-NA lithography, 2nm/A16 process milestones"] },
+    { "zone": "compute", "topics": ["new AI accelerators and GPU launches", "custom ASICs from cloud providers", "gigawatt-scale data centre projects", "chip export controls and licensing rules"] },
+    { "zone": "intel", "topics": ["frontier model releases from major labs", "open-weight model releases", "notable training-data or scaling results"] },
+    { "zone": "value", "topics": ["agent platforms and protocols", "AI products reaching mass adoption", "AI in scientific discovery", "AI regulation taking effect"] }
+  ]
+}

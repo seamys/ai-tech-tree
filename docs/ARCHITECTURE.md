@@ -92,6 +92,24 @@ Time is fractional months since January 2006. `makeScale("focus")` maps it with 
 
 Nodes from the last 90 days, and future nodes, are visible at every level.
 
+## Daily agent
+
+`.github/workflows/agent.yml` runs `scripts/agent/index.mjs` every day at 22:17 UTC (06:17 in Beijing), and on demand with `workflow_dispatch`.
+
+```
+feeds (sources.json) ──► digest ──┐
+earlier agent PRs ──► seen URLs ──┼──► Claude: web_search, web_fetch, propose_node ──► checkProposal() ──► nodes.json
+nodes.json, taxonomy.json ────────┘                                                                         │
+                                         validate, typecheck, unit, build, e2e ──► pull request "agent" ◄───┘
+```
+
+1. **Feeds.** `feeds.mjs` fetches the RSS/Atom feeds and the Hugging Face daily-papers API in `sources.json`, keeps items from the last three days, and drops URLs already in the tree or listed by earlier agent PRs. A failing feed is logged and skipped.
+2. **Model.** One tool-runner loop on Claude Opus 5.5 (adaptive thinking, effort `high`, server-side refusal fallback). The system prompt carries the taxonomy, the inclusion bar and the field rules; the user message carries the digest, the `upcoming` nodes due in the next 60 days and a one-line list of existing nodes for parents and de-duplication. The model reads the digest, searches the web for the layers that feeds miss (`search_focus`), opens the primary source with `web_fetch`, then calls `propose_node` for each node.
+3. **Checks.** `propose_node` has a strict schema whose enums are the live branch, criterion, tag and node ids. `checkProposal()` adds what the schema cannot express: date rules, future dates only for `upcoming`, URL and title de-duplication (arXiv and Hugging Face paper URLs are normalised to one form), geo ranges and an origin point. A failed check goes back to the model as a tool error it can fix. Accepted proposals get a unique id, `status: "candidate"`, `added_by: "agent"` and `added_at`, and are appended to `data/nodes.json` one per line. A run proposes at most five nodes by default.
+4. **Pull request.** The workflow runs the full check suite, pushes `agent/candidates-<date>-<run>` and opens a PR labelled `agent` whose body lists each node with its reasons and evidence, the model's note and the run's token use. A hidden `<!-- agent-seen -->` block records every URL the run looked at, so later runs skip them. A PR opened with the workflow token does not trigger `pages.yml`, which is why the agent workflow runs the checks itself.
+
+Safety: the model has no tool that writes files or runs code; its only output is `propose_node`, and every value is checked before it reaches the file. Checkout runs with `persist-credentials: false`, so the agent step has no token that can push. Nothing reaches `main` without a human merge.
+
 ## Build
 
 `esbuild` bundles `src/main.tsx` into ES2022 modules with content-hashed file names and source maps. The build also copies `public/` (the social preview image) and writes `badges/*.json`, the shields.io endpoints behind the README's node-count and latest-event badges. There is no framework-specific build step: the same command serves the dev build (`--serve`) and the production build.

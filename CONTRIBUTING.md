@@ -26,12 +26,18 @@ Schema reference: [data/schema/node.schema.json](data/schema/node.schema.json).
 
 Lenses (`lenses` in `data/taxonomy.json`) are the presets offered on first visit. Each one has a bilingual name and one-line description, plus top-level `branches` and/or `tags`. Keep the list short (about eight), and propose a new lens only when it answers a question readers actually ask.
 
+## Reviewing agent pull requests
+
+The daily agent opens pull requests labelled `agent`. Each one appends `status: "candidate"` nodes to `data/nodes.json` and explains every node in the description: summary, reasons, parents and the sources it read. Review them against the rules above. To drop a node, delete its line; to fix one, edit it in place. Merging publishes the nodes as candidates in the review queue; set `status` to `"verified"` for the ones you have checked. Closing a pull request without merging is fine: the agent will not propose the same URLs again.
+
+The agent's feeds and search topics are in `scripts/agent/sources.json`. Tuning them is a welcome contribution.
+
 ## Development
 
 ```bash
 npm install
 npm run dev        # local server with rebuild on change
-npm run check      # validate data + type-check (CI runs the same)
+npm run check      # validate data + type-check + unit tests (CI runs the same)
 npm run build
 npm run test:e2e   # browser smoke test against dist/ (CI runs it too)
 ```

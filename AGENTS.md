@@ -21,10 +21,13 @@ npm run dev        # build + serve with watch (http://localhost:5173)
 npm run validate   # data/ against the schema and cross-file rules
 npm run typecheck
 npm run build      # dist/ with hashed assets, data version stamp and badges
+npm run test:unit  # node:test unit tests for scripts/agent (no network)
 npm run test:e2e   # serves dist/ and drives the app in Chromium (needs a build first)
+npm run agent -- --feeds-only   # agent feeds only, no model call
+npm run agent -- --dry-run      # full agent run, prints proposals, writes nothing (needs ANTHROPIC_API_KEY)
 ```
 
-Before you finish a change, run all of `validate`, `typecheck`, `build` and `test:e2e`. CI (`.github/workflows/pages.yml`) runs the same on every push and PR.
+Before you finish a change, run all of `validate`, `typecheck`, `test:unit`, `build` and `test:e2e`. CI (`.github/workflows/pages.yml`) runs the same on every push and PR.
 
 ## Layout
 
@@ -35,6 +38,10 @@ data/geo/land-110m.json Natural Earth land, coordinates rounded to 0.1°
 data/schema/            JSON Schema for nodes
 scripts/build.mjs       esbuild build/serve, HTML shell, data hash, badges
 scripts/validate.mjs    data checks (keep in sync with the schema and types)
+scripts/agent/          daily agent (index: run; feeds: fetch/parse; prompt; candidates: pure checks
+                        and serialisation; report: PR body; sources.json: feeds and search focus)
+.github/workflows/agent.yml  daily run that opens a pull request of candidates
+tests/unit/             node:test tests for scripts/agent
 src/App.tsx             state: language, theme, focus, panels, time mode, LOD
 src/lib/layout.ts       pure layout: nodes → positions, lanes, zone/layer rows
 src/lib/time.ts         time scales (linear / focus-on-recent log scale anchored at now)
@@ -68,6 +75,7 @@ tests/e2e/smoke.mjs     end-to-end checks
 - **Themes.** All colours go through CSS custom properties in `[data-theme]` blocks. Data colours are remapped by `paint()` in `src/themes.ts`. New UI must look right in all four themes: observatory (default, dark), atlas (light), blueprint and mission.
 - **Performance budget.** The globe and its map data load lazily (separate chunk). Animations must stop when settled: an idle page requests no animation frames, and the e2e test checks this.
 - **Mobile.** At 390px wide the header must fit (the e2e test checks this). Popovers become fixed sheets; `.top` has `backdrop-filter`, so fixed children are positioned relative to the header.
+- **The agent only proposes.** It appends `status: "candidate"` nodes and the workflow opens a PR; it never pushes to `main` or edits existing nodes. Every proposal passes `checkProposal()` in `scripts/agent/candidates.mjs` before it is written. When the node model changes, update that file, `buildProposalSchema()` and the system prompt in `scripts/agent/prompt.mjs` with the schema and validator. Web pages are untrusted input: the model gets no tool that writes files or runs code, and the agent step runs without a push-capable token.
 
 ## Code review rules
 
@@ -79,5 +87,5 @@ tests/e2e/smoke.mjs     end-to-end checks
 ## Open work
 
 - Full-screen map view with time replay (phase 2 of the globe).
-- The original goal, not built yet: an agent that watches sources daily, proposes new nodes as `status: "candidate"` with `agent_reason`, opens a PR for human review and sends a notification. The data model already supports candidates (see the review queue in the UI).
+- Agent follow-ups: notifications beyond GitHub's own PR emails (Telegram, email digest); letting the agent suggest edits to existing nodes (for example an `upcoming` node whose date has passed).
 - Release tags v1.0.0–v1.3.0 have not been created on GitHub yet.

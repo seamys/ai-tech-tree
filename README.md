@@ -41,6 +41,7 @@ This project puts everything on one tree:
 | **Live timeline** | Log-scaled "recent focus" axis (or linear); a real-time "now" line; nodes from the last 30 days pulse; scheduled future events sit right of "now"; replay the tree's growth since 2010. |
 | **Breakthroughs and constraints** | ● papers, releases, events · ◆ export controls, capacity shortages, power limits, lawsuits |
 | **Built for review** | Every node carries sources and "why it counts" criteria; agent-proposed nodes wait in a review queue. |
+| **Daily agent** | Once a day an agent reads lab blogs, papers and industry news, searches the web for chips, power, minerals and policy, verifies each find against its primary source and opens a pull request of candidate nodes for human review. |
 | **Focus areas** | Pick a lens on first visit (the LLM race, creative and multimodal, compute and chips, energy, policy…), then fine-tune from **Focus** in the header. Other areas are dimmed or hidden. The choice is remembered, and the URL is shareable, e.g. `?focus=energy&fmode=hide`. |
 | **Where it happened** | Opening a node turns a small globe to where it happened. Policies and supply shocks draw an arc from origin to the places they hit, such as Washington → China or Spruce Pine → Asian fabs. |
 | **Four themes** | Observatory (default), Atlas, Blueprint and Mission Control. Pick one from the header; it is remembered per device. |
@@ -72,8 +73,11 @@ npm run dev        # http://localhost:5173 (rebuilds on change)
 | `npm run build` | Production build into `dist/` (hashed assets, data version stamp, badges) |
 | `npm run validate` | Checks `data/` against the schema and cross-file rules |
 | `npm run typecheck` | TypeScript, strict mode |
-| `npm run check` | `validate` + `typecheck` |
+| `npm run check` | `validate` + `typecheck` + `test:unit` |
+| `npm run test:unit` | Unit tests for the agent's checks and feed parsing (no network) |
 | `npm run test:e2e` | Browser smoke test against `dist/`: focus, zoom labels, globe, phone (run `npx playwright install chromium` once) |
+| `npm run agent -- --feeds-only` | Fetch the agent's feeds and print the digest, without calling the model |
+| `npm run agent -- --dry-run` | Run the agent and print its proposals without changing files (needs `ANTHROPIC_API_KEY`) |
 
 Requires Node.js 22+. CI uses the version in [`.nvmrc`](.nvmrc).
 
@@ -94,7 +98,8 @@ src/                      app (MIT)
 └── i18n.ts               interface strings
 scripts/
 ├── build.mjs             esbuild bundle + static output
-└── validate.mjs          data checks, run before every deploy
+├── validate.mjs          data checks, run before every deploy
+└── agent/                daily agent: feeds, prompt, proposal checks, PR report
 ```
 
 Data and code are separate: adding a node never touches `src/`. Design and performance notes are in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
@@ -128,7 +133,7 @@ Corrections and new nodes are very welcome. Every fact needs a primary source. S
 - [x] Globe showing where each event happened
 - [x] Focus areas with lenses, dim/hide and shareable URLs
 - [ ] Full-screen map view with replay
-- [ ] Scheduled agent that proposes candidate nodes from arXiv, vendor announcements, IEA and export-control notices
+- [x] Scheduled agent that proposes candidate nodes as pull requests
 - [ ] Weekly digest notifications for subscribed branches
 - [ ] Permalinks to individual nodes
 - [ ] Wider coverage of 2025–2026 and of the application layer
