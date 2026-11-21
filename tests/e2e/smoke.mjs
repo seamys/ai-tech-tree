@@ -55,7 +55,7 @@ const open = async (query, viewport = { width: 1440, height: 900 }, extra = {}) 
   const requests = [];
   page.on("request", (r) => requests.push(r.url()));
   await page.goto(BASE + query);
-  await page.waitForSelector("g.node");
+  await page.waitForSelector("g.node", { state: "attached" }); // the first node in DOM order may be culled
   await page.waitForTimeout(500);
   return { page, requests };
 };
@@ -70,7 +70,7 @@ try {
     await page.waitForTimeout(500);
     check(page.url().includes("focus=frontier-llm"), "lens is mirrored to the URL", page.url());
     check(await page.locator("g.node.unfocus").count() > 0, "out-of-focus nodes are dimmed");
-    await page.reload(); await page.waitForSelector("g.node");
+    await page.reload(); await page.waitForSelector("g.node", { state: "attached" }); // the first node in DOM order may be culled
     check(await page.locator(".lenspicker").count() === 0, "focus is remembered after reload");
   }
 

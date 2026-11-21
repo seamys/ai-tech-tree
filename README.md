@@ -38,6 +38,7 @@ This project puts everything on one tree:
 | --- | --- |
 | **10 layers, 4 zones** | Value (applications, model services) · Intelligence (foundation models, data) · Compute (software, data centres, chips) · Physical (fabrication, energy, minerals) |
 | **Semantic zoom** | Overview → layers and branches → sub-branches. Zooming in reveals finer detail; the timescale refines from years to months. |
+| **Readable lanes** | The trunk stays pinned to the left edge, with every branch bending out of it and every sub-branch forking off its parent. Neighbouring branches have distinct colours, and each branch's name repeats along its line like a metro map. |
 | **Live timeline** | Log-scaled "recent focus" axis (or linear); a real-time "now" line; nodes from the last 30 days pulse; scheduled future events sit right of "now"; replay the tree's growth since 2010. |
 | **Breakthroughs and constraints** | ● papers, releases, events · ◆ export controls, capacity shortages, power limits, lawsuits |
 | **Built for review** | Every node carries sources and "why it counts" criteria; agent-proposed nodes wait in a review queue. |

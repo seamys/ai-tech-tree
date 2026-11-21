@@ -2,9 +2,8 @@
 // language, selection, search or tag filter change - never during pan/zoom.
 import { memo } from "react";
 import type { Lang, TechNode } from "../types";
-import { LOD_TEXT_SCALE, TRUNK_X, TOP, type Layout, type TaxIndex } from "../lib/layout";
+import { TRUNK_X, TOP, type Layout, type TaxIndex } from "../lib/layout";
 import { ageOf, isFresh, isRecent, type TimeScale } from "../lib/time";
-import { t } from "../i18n";
 
 interface Props {
   layout: Layout;
@@ -21,11 +20,10 @@ interface Props {
 const matches = (n: TechNode, q: string) =>
   (n.title.zh + n.title.en + n.summary.zh + n.summary.en).toLowerCase().includes(q);
 
-function TreeLayerImpl({ layout, scale, index, lang, lod, selectedId, query, activeTag, inFocus }: Props) {
+function TreeLayerImpl({ layout, scale, index, lang, selectedId, query, activeTag, inFocus }: Props) {
   const { lanes, zoneSpans, groundY, height: H, width: W } = layout;
   const xNow = scale.xNow;
   const q = query.trim().toLowerCase();
-  const s = LOD_TEXT_SCALE[lod];
 
   return (
     <>
@@ -43,30 +41,21 @@ function TreeLayerImpl({ layout, scale, index, lang, lod, selectedId, query, act
         <line x1={xNow} x2={xNow} y1={TOP - 60} y2={H + 200} className="nowline" />
       </g>
 
+      {/* The trunk and the bends into each lane are drawn by the canvas's sticky spine, so the
+          lanes start wherever the spine is. TreeCanvas rewrites the two lane paths each frame. */}
       <g className="branches">
-        {lanes.length > 0 && (
-          <>
-            <line x1={TRUNK_X} x2={TRUNK_X} y1={TOP - 40} y2={lanes[lanes.length - 1].y} className="trunk" />
-            <g transform={`translate(${TRUNK_X} ${TOP - 46})`}>
-              <g className="ns"><circle r={9} className="stack-dot" /><text x={16} y={5} className="stack-root">{t(lang, "stackRoot")}</text></g>
-            </g>
-          </>
-        )}
         {lanes.map((lane) => {
           if (!lane.nodes.length) return null;
           const { y } = lane;
           const past = lane.nodes.filter((p) => ageOf(p.node.date, scale.nowM) >= 0);
-          const xe = past.length ? past[past.length - 1].x : TRUNK_X + 110;
+          const xe = past.length ? past[past.length - 1].x : -Infinity;
           const xEnd = Math.max(xNow, ...lane.nodes.map((p) => p.x));
           const off = lane.nodes.some((p) => inFocus(p.node)) ? "" : " unfocus";
-          const start = lane.isSub
-            ? `M${Math.max(TRUNK_X + 110, lane.nodes[0].x - 60)},${y}`
-            : `M${TRUNK_X},${y + (lane.ground ? -34 : 34) * s} C${TRUNK_X + 60},${y} ${TRUNK_X + 60},${y} ${TRUNK_X + 110},${y}`;
           return (
-            <g key={lane.key}>
-              <path d={`${start} L${xe},${y}`} className={`limb${lane.isSub ? " sub" : ""}${off}`} stroke={lane.color} />
+            <g key={lane.key} className="lane" data-lane={lane.key} data-xe={xe} data-xend={xEnd}>
+              <path d={`M${TRUNK_X},${y} L${Math.max(TRUNK_X, xe)},${y}`} className={`limb${lane.isSub ? " sub" : ""}${off}`} stroke={lane.color} />
               {/* Dashed tail to "now": the longer it is, the longer this branch has gone without news. */}
-              <path d={`M${xe},${y} L${xEnd},${y}`} className={`limb-stale${off}`} stroke={lane.color} />
+              <path d={`M${Math.max(TRUNK_X, xe)},${y} L${xEnd},${y}`} className={`limb-stale${off}`} stroke={lane.color} />
               {lane.nodes.map((p) => (
                 <line key={p.node.id} x1={p.x} x2={p.x} y1={y} y2={p.y} className={inFocus(p.node) ? "twig" : "twig unfocus"}
                   stroke={lane.summary ? index.colorOfBranch(p.node.branch) : lane.color} />

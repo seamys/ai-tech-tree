@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - `npm run agent` (`--feeds-only`, `--dry-run`, `--report`), with feeds and search topics in `scripts/agent/sources.json`.
 - Unit tests for the agent (`npm run test:unit`), run in CI.
 
+### Changed
+- **Lanes are easier to tell apart.** The trunk now stays pinned to the left edge at any zoom or pan. Every branch bends out of it, and every sub-branch forks visibly off its parent, so the zone → layer → branch → sub-branch structure is always on screen.
+- Each branch's name repeats along its line, like a metro map, so a lane can be identified far from the left edge.
+- Neighbouring branches in a zone now have clearly different colours: Agents & Tools, Fine-tuning & Serving, Multimodal, Data Centres & Clusters, Fabrication, Packaging & Memory, and Minerals & Materials got new hues.
+- Lane lines are slightly bolder and keep a constant on-screen width at every zoom.
+
 ## [1.3.0] - 2026-11-20
 
 ### Added

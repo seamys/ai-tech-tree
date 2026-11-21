@@ -179,7 +179,7 @@
         "zh": "Agent 与工具",
         "en": "Agents & Tools"
       },
-      "color": "#b794f4"
+      "color": "#fc8181"
     },
     {
       "id": "serve",
@@ -188,7 +188,7 @@
         "zh": "微调与推理服务",
         "en": "Fine-tuning & Serving"
       },
-      "color": "#a0aec0"
+      "color": "#63b3ed"
     },
     {
       "id": "eval",
@@ -323,7 +323,7 @@
         "zh": "多模态",
         "en": "Multimodal"
       },
-      "color": "#76e4f7"
+      "color": "#7f9cf5"
     },
     {
       "id": "data",
@@ -350,7 +350,7 @@
         "zh": "数据中心与集群",
         "en": "Data Centres & Clusters"
       },
-      "color": "#d6a35c"
+      "color": "#4fd1a5"
     },
     {
       "id": "infra-gw",
@@ -386,7 +386,7 @@
         "zh": "制造、封装与存储",
         "en": "Fabrication, Packaging & Memory"
       },
-      "color": "#c08457"
+      "color": "#f28b82"
     },
     {
       "id": "energy",
@@ -404,7 +404,7 @@
         "zh": "矿产与材料",
         "en": "Minerals & Materials"
       },
-      "color": "#a78b6d"
+      "color": "#b39ddb"
     }
   ],
   "tags": [

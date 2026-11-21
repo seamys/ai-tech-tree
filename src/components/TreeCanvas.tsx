@@ -3,7 +3,7 @@
 // applied imperatively inside requestAnimationFrame.
 import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, type ReactElement } from "react";
 import type { Lang, Lod, TechNode } from "../types";
-import { TOP, type Layout, type TaxIndex } from "../lib/layout";
+import { TOP, TRUNK_X, type Layout, type TaxIndex } from "../lib/layout";
 import { formatNow, tickKind, T0, type TimeScale } from "../lib/time";
 import { monthLabel, t } from "../i18n";
 import { TreeLayer } from "./TreeLayer";
@@ -44,6 +44,12 @@ interface Props {
 
 const MIN_K = 0.25, MAX_K = 2;
 const LABEL_TOP = 142; // sticky labels hide under the header/axis above this y
+// Sticky spine (screen px): the trunk sits at the world trunk's x, but never left of SPINE_MIN.
+// A lane bends out of the trunk and starts at ELBOW; a sub-branch forks off its parent at
+// FORK and starts at SUB.
+const SPINE_MIN = 18, ELBOW = 30, FORK = 40, SUB = 64, BEND = 24;
+// Lane names repeat along each lane roughly this far apart (screen px).
+const PILL_GAP = 560;
 const MIN_K_FOR_LOD: Record<Lod, number> = { 0: 0.25, 1: 0.75, 2: 1.25 };
 const PANEL_W = 380;
 
@@ -82,10 +88,25 @@ const LinksLayer = memo(function LinksLayer({ layout, nodesById, index, selected
 
 interface NodeEl { el: SVGGElement; x: number; y: number; culled: boolean; above: boolean; t: number; w: number; dw: number; nolab: boolean; left: boolean }
 
+/** One lane as the per-frame code sees it: its two world paths and its spine pieces. */
+interface LaneEl {
+  key: string; y: number; xe: number; xEnd: number; isSub: boolean; summary: boolean; parentY: number | null;
+  label: string; color: string; nodes: TechNode[]; unfocus: boolean; xs: number[]; labelW: number; pillW: number;
+  limb: SVGPathElement; stale: SVGPathElement; bend: SVGGElement | null; fork: SVGPathElement | null; forkDot: SVGCircleElement | null;
+}
+
 // Label widths come from canvas measureText with each label's computed font, which also
 // works for labels that are currently hidden (getComputedTextLength would return 0).
 let measureCtx: CanvasRenderingContext2D | null = null;
 const widthCache = new Map<string, number>();
+/** Width of a repeated lane-name pill (see .lanepill): its text plus padding and border. */
+function pillWidth(text: string): number {
+  measureCtx ??= document.createElement("canvas").getContext("2d");
+  if (!measureCtx) return text.length * 11 + 18;
+  measureCtx.font = `600 11px ${getComputedStyle(document.documentElement).getPropertyValue("--font-ui")}`;
+  return measureCtx.measureText(text).width + 18;
+}
+
 function measure(el: SVGTextElement | null): number {
   if (!el) return 0;
   const cs = getComputedStyle(el);
@@ -168,6 +189,9 @@ export const TreeCanvas = forwardRef<CanvasHandle, Props>(function TreeCanvas(pr
   const gridRef = useRef<HTMLDivElement>(null);
   const axisRef = useRef<HTMLDivElement>(null);
   const labelsRef = useRef<HTMLDivElement>(null);
+  const spineRef = useRef<SVGSVGElement>(null);
+  const trunkRef = useRef<SVGLineElement>(null);
+  const pillsRef = useRef<HTMLDivElement>(null);
   const nowTagRef = useRef<HTMLDivElement>(null);
   const cursorRef = useRef<HTMLDivElement>(null);
 
@@ -181,7 +205,12 @@ export const TreeCanvas = forwardRef<CanvasHandle, Props>(function TreeCanvas(pr
   const nodeEls = useRef<NodeEl[]>([]);
   // Label decluttering depends only on zoom (not pan), so it reruns when k or the inputs change.
   const declutterKey = useRef("");
-  const labelEls = useRef<{ el: HTMLElement; y: number; hidden: boolean }[]>([]);
+  const labelEls = useRef<{ el: HTMLElement; y: number; dy: number; sx: number | null; hidden: boolean }[]>([]);
+  const fadeRef = useRef<HTMLDivElement>(null);
+  const fadeW = useRef(-1);
+  const laneEls = useRef<LaneEl[]>([]);
+  const spineMarks = useRef<{ el: SVGElement; y: number }[]>([]);
+  const trunkEnd = useRef<{ y: number; ground: boolean } | null>(null); // the last lane that bends out of the trunk
 
   const viewWidth = () => {
     const w = hostRef.current?.clientWidth ?? innerWidth;
@@ -219,24 +248,76 @@ export const TreeCanvas = forwardRef<CanvasHandle, Props>(function TreeCanvas(pr
     const dk = `${v.k.toFixed(4)}|${compact}`;
     if (dk !== declutterKey.current) { declutterKey.current = dk; declutter(nodeEls.current, v.k, compact); }
 
-    // Viewport culling: hide nodes far outside the screen.
-    const margin = 400;
+    // Viewport culling: hide nodes far outside the screen, and nodes that have slid under the
+    // sticky spine (their labels would otherwise poke out from behind it).
+    const margin = 400, spineCut = Math.max(SPINE_MIN, v.x + TRUNK_X * v.k) + ELBOW;
     for (const n of nodeEls.current) {
       const sx = v.x + n.x * v.k, sy = v.y + n.y * v.k;
-      const out = sx < -margin || sx > W + margin || sy < -margin || sy > H + margin;
+      const out = sx < spineCut || sx > W + margin || sy < -margin || sy > H + margin;
       if (out !== n.culled) { n.culled = out; n.el.style.display = out ? "none" : ""; }
+    }
+
+    // Sticky spine: the trunk follows the world trunk but stops at the left edge, so every lane
+    // keeps a visible bend into the trunk (and every sub-branch its fork) at any zoom or pan.
+    const SX = Math.max(SPINE_MIN, v.x + TRUNK_X * v.k);
+    const toWorld = (sx: number) => (sx - v.x) / v.k;
+    for (const m of spineMarks.current) m.el.setAttribute("transform", `translate(${SX} ${v.y + m.y * v.k})`);
+    // Fade out whatever passes under the spine, so labels never run through the trunk.
+    const fw = Math.round(SX + 14);
+    if (fw !== fadeW.current) { fadeW.current = fw; fadeRef.current!.style.width = `${fw}px`; }
+    const trunk = trunkRef.current!;
+    trunk.setAttribute("x1", String(SX)); trunk.setAttribute("x2", String(SX));
+    const end = trunkEnd.current;
+    trunk.setAttribute("y1", String(v.y + (TOP - 46) * v.k));
+    trunk.setAttribute("y2", String(end ? v.y + end.y * v.k + (end.ground ? -BEND : BEND) : v.y + (TOP - 46) * v.k));
+    for (const l of laneEls.current) {
+      const sy = v.y + l.y * v.k;
+      const x0 = toWorld(SX + (l.fork ? SUB : ELBOW)), solidEnd = Math.max(x0, l.xe);
+      l.limb.setAttribute("d", l.xe > x0 ? `M${x0},${l.y} L${l.xe},${l.y}` : "");
+      l.stale.setAttribute("d", l.xEnd > solidEnd ? `M${solidEnd},${l.y} L${l.xEnd},${l.y}` : "");
+      if (l.bend) l.bend.setAttribute("transform", `translate(${SX} ${sy})`);
+      if (l.fork && l.forkDot && l.parentY !== null) {
+        const py = v.y + l.parentY * v.k, a = SX + FORK, b = SX + SUB;
+        l.fork.setAttribute("d", `M${a},${py} C${a + 16},${py} ${b - 16},${sy} ${b},${sy}`);
+        l.forkDot.setAttribute("transform", `translate(${a} ${py})`);
+      }
     }
 
     // Sticky labels on the left edge.
     let lastSy = -Infinity;
     for (const l of labelEls.current) { // sorted by y
-      const sy = v.y + l.y * v.k;
+      const sy = v.y + l.y * v.k + l.dy;
       // Keep clear of the header and bottom controls, and never stack two captions on one line.
       const hide = sy < LABEL_TOP || sy > H - 64 || sy - lastSy < 18;
       if (!hide) lastSy = sy;
       if (hide !== l.hidden) { l.hidden = hide; l.el.style.visibility = hide ? "hidden" : ""; }
-      if (!hide) l.el.style.transform = `translate3d(0,${sy}px,0)`;
+      if (!hide) l.el.style.transform = `translate3d(${l.sx === null ? 0 : SX + l.sx}px,${sy}px,0)`;
     }
+
+    // Lane names repeat along each lane, like line names on a metro map. Anchors sit on a world
+    // grid whose spacing only changes at powers of two, so they move with the map instead of
+    // jittering while you zoom. An anchor is skipped where a node's stem crosses the lane.
+    const pills: { l: LaneEl; sx: number; sy: number }[] = [];
+    const gap = 2 ** Math.round(Math.log2(PILL_GAP / v.k));
+    for (const l of laneEls.current) {
+      if (l.summary || pills.length > 80) continue;
+      const sy = v.y + l.y * v.k;
+      if (sy < LABEL_TOP + 12 || sy > H - 72) continue;
+      const from = SX + (l.fork ? SUB : ELBOW) + l.labelW + 90;
+      const to = Math.min(W - l.pillW - 12, v.x + l.xEnd * v.k - l.pillW - 8);
+      const pad = 14 / v.k, pw = l.pillW / v.k;
+      for (let aw = Math.ceil(toWorld(from) / gap) * gap; v.x + aw * v.k <= to; aw += gap)
+        if (!l.xs.some((x) => x > aw - pad && x < aw + pw + pad)) pills.push({ l, sx: v.x + aw * v.k, sy });
+    }
+    const pillBox = pillsRef.current!;
+    syncPool(pillBox, pills.length, "lanepill");
+    pills.forEach((p, i) => {
+      const el = pillBox.children[i] as HTMLElement;
+      if (el.textContent !== p.l.label) el.textContent = p.l.label;
+      el.style.color = p.l.color;
+      el.classList.toggle("unfocus", p.l.unfocus);
+      el.style.transform = `translate3d(${p.sx}px,${p.sy}px,0)`;
+    });
 
     // Time axis: only months inside the viewport; years first, then quarters, then months.
     const grid = gridRef.current!, axis = axisRef.current!;
@@ -331,8 +412,33 @@ export const TreeCanvas = forwardRef<CanvasHandle, Props>(function TreeCanvas(pr
       return { el, x: p.x, y: p.y, culled: false, above: p.above, t: Number(el.dataset.t), w: measure(title), dw: measure(date), nolab: false, left: false };
     });
     declutterKey.current = "";
-    labelEls.current = [...labelsRef.current!.querySelectorAll<HTMLElement>("[data-y]")].map((el) => { el.style.visibility = ""; return { el, y: Number(el.dataset.y), hidden: false }; })
-      .sort((a, b) => a.y - b.y);
+    labelEls.current = [...labelsRef.current!.querySelectorAll<HTMLElement>("[data-y]")].map((el) => {
+      el.style.visibility = "";
+      return { el, y: Number(el.dataset.y), dy: Number(el.dataset.dy ?? 0), sx: el.dataset.sx === undefined ? null : Number(el.dataset.sx), hidden: false };
+    }).sort((a, b) => a.y - b.y);
+
+    const spine = spineRef.current!;
+    spineMarks.current = [...spine.querySelectorAll<SVGElement>("[data-y]")].map((el) => ({ el, y: Number(el.dataset.y) }));
+    laneEls.current = [];
+    let last: (typeof layout.lanes)[number] | null = null;
+    for (const l of layout.lanes) {
+      const g = world.querySelector<SVGGElement>(`g.lane[data-lane="${l.key}"]`);
+      if (!g) continue;
+      const [limb, stale] = g.querySelectorAll<SVGPathElement>(":scope > path");
+      const bend = spine.querySelector<SVGGElement>(`[data-bend="${l.key}"]`);
+      const forkG = spine.querySelector<SVGGElement>(`[data-fork="${l.key}"]`);
+      const parent = forkG ? layout.lanes.find((p) => p.key === forkG.dataset.parent) : undefined;
+      const labelEl = labelsRef.current!.querySelector<HTMLElement>(`[data-lane="${l.key}"]`);
+      if (bend) last = l;
+      laneEls.current.push({
+        key: l.key, y: l.y, xe: Number(g.dataset.xe), xEnd: Number(g.dataset.xend), isSub: l.isSub, summary: l.summary,
+        parentY: parent ? parent.y : null, label: l.label, color: l.color,
+        nodes: l.nodes.map((p) => p.node), unfocus: !l.nodes.some((p) => inFocus(p.node)), xs: l.nodes.map((p) => p.x),
+        labelW: labelEl?.offsetWidth ?? 0, pillW: pillWidth(l.label),
+        limb, stale, bend, fork: forkG?.querySelector("path") ?? null, forkDot: forkG?.querySelector("circle") ?? null,
+      });
+    }
+    trunkEnd.current = last ? { y: last.y, ground: last.ground } : null;
 
     const v = view.current, P = pending.current;
     if (!fitted.current) { fitted.current = true; doFit(); }
@@ -365,13 +471,19 @@ export const TreeCanvas = forwardRef<CanvasHandle, Props>(function TreeCanvas(pr
   useEffect(() => { apply(); }, [now, panelOpen, lang, apply]);
 
   // Selection, search and tag filters change label priorities.
-  useEffect(() => { declutterKey.current = ""; apply(); }, [selectedId, query, activeTag, inFocus, apply]);
+  useEffect(() => {
+    for (const l of laneEls.current) l.unfocus = !l.nodes.some(inFocus);
+    declutterKey.current = ""; apply();
+  }, [selectedId, query, activeTag, inFocus, apply]);
 
   // A theme or web-font change alters label widths: re-measure and re-place.
   useEffect(() => {
     const remeasure = () => {
       widthCache.clear();
       for (const n of nodeEls.current) { const [a, b] = n.el.querySelectorAll("text"); n.w = measure(a); n.dw = measure(b); }
+      for (const l of laneEls.current) l.pillW = pillWidth(l.label);
+      const labels = labelsRef.current;
+      if (labels) for (const l of laneEls.current) l.labelW = labels.querySelector<HTMLElement>(`[data-lane="${CSS.escape(l.key)}"]`)?.offsetWidth ?? l.labelW;
       declutterKey.current = ""; apply();
     };
     const mo = new MutationObserver(remeasure);
@@ -459,7 +571,33 @@ export const TreeCanvas = forwardRef<CanvasHandle, Props>(function TreeCanvas(pr
         <div className="nowtag" ref={nowTagRef}><i /><span /></div>
       </div>
       <div className="cursorline" ref={cursorRef} aria-hidden />
+      <div className="spinefade" ref={fadeRef} aria-hidden />
+      <svg className="spine" ref={spineRef} aria-hidden>
+        <line className="trunk" ref={trunkRef} />
+        {layout.lanes.map((l) => {
+          if (!l.nodes.length) return null;
+          const off = l.nodes.some((p) => inFocus(p.node)) ? "" : " unfocus";
+          const parent = l.isSub ? layout.lanes.find((p) => p.key === index.branch.get(l.key)?.parent && p.nodes.length) : undefined;
+          if (parent) return (
+            <g key={l.key} data-fork={l.key} data-parent={parent.key}>
+              <path className={`limb sub${off}`} stroke={l.color} />
+              <circle r={2.8} className={`forkdot${off}`} stroke={l.color} />
+            </g>
+          );
+          // Branches grow up out of the trunk; below the ground line, roots grow down.
+          const b = l.ground ? -BEND : BEND;
+          return (
+            <g key={l.key} data-bend={l.key}>
+              <path className={`limb${l.isSub ? " sub" : ""}${off}`} stroke={l.color} d={`M0,${b} C0,${b * 0.35} ${BEND * 0.35},0 ${BEND},0 L${ELBOW},0`} />
+            </g>
+          );
+        })}
+        {layout.layerRows.map(({ layer, y }) => <circle key={layer.id} data-y={y - 2} r={3.2} className="layerdot" />)}
+        {layout.zoneRows.map(({ zone, y }) => <circle key={zone.id} data-y={y - 3} r={5} className="zonedot" fill={zone.color} />)}
+        <g data-y={TOP - 46}><circle r={9} className="stack-dot" /><text x={16} y={5} className="stack-root">{t(lang, "stackRoot")}</text></g>
+      </svg>
       <div className="sticky" ref={labelsRef}>
+        <div className="pills" ref={pillsRef} />
         {layout.groundY !== null && (
           <>
             <div className="groundlabel" data-y={layout.groundY - 22}>{t(lang, "aboveGround")}</div>
@@ -471,18 +609,19 @@ export const TreeCanvas = forwardRef<CanvasHandle, Props>(function TreeCanvas(pr
           const shown = all.filter(inFocus).length;
           const count = shown === all.length ? all.length : `${shown}/${all.length}`;
           return (
-            <button key={zone.id} className="zonehead" data-y={y - 14} style={{ borderColor: zone.color, color: zone.color }}
+            <button key={zone.id} className="zonehead" data-y={y - 14} data-sx={10} style={{ borderColor: zone.color, color: zone.color }}
               onClick={() => onZoneClick(zone.id)}>
               {zone.name[lang]}<small>{zone.description[lang]} · {t(lang, "nodes", { n: count })}</small>
             </button>
           );
         })}
         {layout.layerRows.map(({ layer, zone, y }) => (
-          <div key={layer.id} className="layerlabel" data-y={y - 8} style={{ color: zone.color }}>{layer.id}  {layer.name[lang]}</div>
+          <div key={layer.id} className="layerlabel" data-y={y - 8} data-sx={12} style={{ color: zone.color }}>{layer.id}  {layer.name[lang]}</div>
         ))}
         {layout.lanes.filter((l) => !l.summary).map((l) => (
-          <div key={l.key} className={`lanelabel${l.isSub ? " sub" : ""}${l.nodes.some((p) => inFocus(p.node)) ? "" : " unfocus"}`} data-y={l.y - 22} style={{ color: l.color, borderColor: `${l.color}66` }}>
-            {l.isSub ? "└ " : ""}{l.label}
+          <div key={l.key} className={`lanelabel${l.isSub ? " sub" : ""}${l.nodes.some((p) => inFocus(p.node)) ? "" : " unfocus"}`}
+            data-y={l.y} data-dy={-21} data-sx={(l.isSub ? SUB : ELBOW) + 2} data-lane={l.key} style={{ color: l.color, borderColor: `${l.color}66` }}>
+            {l.label}
           </div>
         ))}
       </div>
